@@ -4,16 +4,18 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Palette, Lightbulb } from 'lucide-react';
+import { Palette, Lightbulb, LogOut, User } from 'lucide-react';
 import { FileUpload } from '@/components/file-upload';
 import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';
 import { type UploadedFile, type ChatMessage, type Conversation } from '@/lib/types';
 import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
+import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
+  const { user } = useAuth();
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [contextPrompt, setContextPrompt] = useState('');
@@ -128,7 +130,34 @@ export default function Home() {
             <h1 className="text-xl font-bold text-slate-900">CreativeAI</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-slate-600">Session: {sessionId.slice(-8)}</span>
+            {user && (
+              <>
+                <div className="flex items-center space-x-2">
+                  {user.profileImageUrl ? (
+                    <img 
+                      src={user.profileImageUrl} 
+                      alt="Profile" 
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-slate-600" />
+                    </div>
+                  )}
+                  <span className="text-sm text-slate-700">
+                    {user.firstName || user.email || 'User'}
+                  </span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => window.location.href = '/api/logout'}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
