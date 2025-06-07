@@ -1,6 +1,28 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Session storage table for authentication
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table for authentication
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export const files = pgTable("files", {
   id: serial("id").primaryKey(),
@@ -9,12 +31,14 @@ export const files = pgTable("files", {
   mimeType: text("mime_type").notNull(),
   size: integer("size").notNull(),
   sessionId: text("session_id").notNull(),
+  userId: varchar("user_id").references(() => users.id),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").notNull(),
+  userId: varchar("user_id").references(() => users.id),
   contextPrompt: text("context_prompt"),
   mediaType: text("media_type"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -42,6 +66,9 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   createdAt: true,
 });
+
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
 
 export type InsertFile = z.infer<typeof insertFileSchema>;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
