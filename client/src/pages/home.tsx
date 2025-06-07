@@ -160,15 +160,16 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4">
+      <header className="bg-white border-b border-slate-200 px-3 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-              <Palette className="w-5 h-5 text-white" />
+          <div className="flex items-center space-x-2">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+              <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900">CreativeAI</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 hidden xs:block">CreativeAI</h1>
+            <h1 className="text-lg font-bold text-slate-900 xs:hidden">AI</h1>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1 sm:space-x-3">
             {user && (
               <>
                 <ConversationHistory onSelectConversation={handleSelectConversation} />
@@ -176,23 +177,24 @@ export default function Home() {
                   variant="outline" 
                   size="sm"
                   onClick={startNewConversation}
+                  className="px-2 sm:px-3"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  New
+                  <Plus className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">New</span>
                 </Button>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   {user.profileImageUrl ? (
                     <img 
                       src={user.profileImageUrl} 
                       alt="Profile" 
-                      className="w-8 h-8 rounded-full object-cover"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-slate-600" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-slate-300 rounded-full flex items-center justify-center">
+                      <User className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
                     </div>
                   )}
-                  <span className="text-sm text-slate-700">
+                  <span className="text-xs sm:text-sm text-slate-700 hidden md:block max-w-20 lg:max-w-none truncate">
                     {user.firstName || user.email || 'User'}
                   </span>
                 </div>
@@ -200,9 +202,10 @@ export default function Home() {
                   variant="ghost" 
                   size="sm"
                   onClick={() => window.location.href = '/api/logout'}
+                  className="px-2 sm:px-3"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
+                  <LogOut className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Sign Out</span>
                 </Button>
               </>
             )}

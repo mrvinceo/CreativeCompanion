@@ -54,12 +54,12 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm">
-          <History className="w-4 h-4 mr-2" />
-          History
+        <Button variant="outline" size="sm" className="px-2 sm:px-3">
+          <History className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">History</span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px]">
+      <SheetContent className="w-[320px] sm:w-[400px] lg:w-[540px]">
         <SheetHeader>
           <SheetTitle className="flex items-center">
             <History className="w-5 h-5 mr-2" />
