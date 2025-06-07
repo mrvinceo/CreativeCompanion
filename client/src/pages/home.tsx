@@ -181,9 +181,9 @@ export default function Home() {
                   New
                 </Button>
                 <div className="flex items-center space-x-2">
-                  {(user as any).profileImageUrl ? (
+                  {user.profileImageUrl ? (
                     <img 
-                      src={(user as any).profileImageUrl} 
+                      src={user.profileImageUrl} 
                       alt="Profile" 
                       className="w-8 h-8 rounded-full object-cover"
                     />
@@ -193,7 +193,7 @@ export default function Home() {
                     </div>
                   )}
                   <span className="text-sm text-slate-700">
-                    {(user as any).firstName || (user as any).email || 'User'}
+                    {user.firstName || user.email || 'User'}
                   </span>
                 </div>
                 <Button 
