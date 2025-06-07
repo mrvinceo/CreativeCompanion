@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Palette, Lightbulb } from 'lucide-react';
 import { FileUpload } from '@/components/file-upload';
 import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';
 import { type UploadedFile, type ChatMessage, type Conversation } from '@/lib/types';
+import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,6 +17,7 @@ export default function Home() {
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [contextPrompt, setContextPrompt] = useState('');
+  const [mediaType, setMediaType] = useState<MediaType | ''>('');
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
@@ -30,6 +34,7 @@ export default function Home() {
           setConversation(data.conversation);
           setMessages(data.messages);
           setContextPrompt(data.conversation.contextPrompt || '');
+          setMediaType((data.conversation.mediaType as MediaType) || '');
         }
       } catch (error) {
         console.error('Failed to load conversation:', error);
@@ -64,6 +69,15 @@ export default function Home() {
       return;
     }
 
+    if (!mediaType) {
+      toast({
+        title: "Media type required",
+        description: "Please select a media type for specialized feedback",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (files.length === 0) {
       toast({
         title: "Files required", 
@@ -79,6 +93,7 @@ export default function Home() {
       const response = await apiRequest('POST', '/api/analyze', {
         sessionId,
         contextPrompt,
+        mediaType,
       });
 
       const data = await response.json();
@@ -130,37 +145,68 @@ export default function Home() {
 
           {files.length > 0 && <FilePreview files={files} />}
 
-          {/* Context Prompt Section */}
+          {/* Media Type & Context Section */}
           <Card className="p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
               <Lightbulb className="w-5 h-5 text-warning mr-2" />
-              Context & Instructions
+              Creative Medium & Context
             </h2>
             
-            <Textarea
-              value={contextPrompt}
-              onChange={(e) => setContextPrompt(e.target.value)}
-              placeholder="Describe what you'd like feedback on...
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="media-type" className="text-sm font-medium text-slate-700">
+                  Select Your Creative Medium
+                </Label>
+                <Select 
+                  value={mediaType} 
+                  onValueChange={(value: MediaType) => setMediaType(value)}
+                  disabled={analyzing || !!conversation}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Choose the type of creative work..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(MEDIA_TYPES).map(([key, { label }]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="context-prompt" className="text-sm font-medium text-slate-700">
+                  Additional Context & Instructions
+                </Label>
+                <Textarea
+                  id="context-prompt"
+                  value={contextPrompt}
+                  onChange={(e) => setContextPrompt(e.target.value)}
+                  placeholder="Provide specific details about what you'd like feedback on...
 
 Examples:
-• 'Please review this interior design concept for a modern apartment. Focus on color harmony and spatial flow.'
-• 'Analyze the composition and emotional impact of this artwork.'
-• 'Evaluate the user experience flow in these app mockups.'"
-              className="mb-4"
-              rows={8}
-              disabled={analyzing || !!conversation}
-            />
+• 'Focus on color harmony and composition'
+• 'I'm particularly interested in emotional impact'
+• 'Please evaluate technical execution and style'"
+                  className="mt-1"
+                  rows={6}
+                  disabled={analyzing || !!conversation}
+                />
+              </div>
+            </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-6">
               <div className="flex items-center space-x-4 text-sm text-slate-500">
                 <span>{files.length} files ready</span>
+                {mediaType && <span>{MEDIA_TYPES[mediaType].label}</span>}
                 <span>Gemini 2.0</span>
               </div>
               
               {!conversation && (
                 <Button 
                   onClick={submitForAnalysis}
-                  disabled={analyzing || !contextPrompt.trim() || files.length === 0}
+                  disabled={analyzing || !contextPrompt.trim() || !mediaType || files.length === 0}
                   className="bg-gradient-to-r from-primary to-secondary"
                 >
                   {analyzing ? 'Analyzing...' : 'Get AI Feedback'}

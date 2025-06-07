@@ -114,10 +114,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start conversation with AI analysis
   app.post("/api/analyze", async (req, res) => {
     try {
-      const { sessionId, contextPrompt } = req.body;
+      const { sessionId, contextPrompt, mediaType } = req.body;
 
-      if (!sessionId || !contextPrompt) {
-        return res.status(400).json({ message: "Session ID and context prompt are required" });
+      if (!sessionId || !contextPrompt || !mediaType) {
+        return res.status(400).json({ message: "Session ID, context prompt, and media type are required" });
       }
 
       // Get files for this session
@@ -133,6 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const conversationData = insertConversationSchema.parse({
           sessionId,
           contextPrompt,
+          mediaType,
         });
         conversation = await storage.createConversation(conversationData);
       }

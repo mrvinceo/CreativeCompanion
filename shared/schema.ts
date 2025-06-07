@@ -16,6 +16,7 @@ export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").notNull(),
   contextPrompt: text("context_prompt"),
+  mediaType: text("media_type"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
