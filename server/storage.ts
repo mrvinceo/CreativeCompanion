@@ -1,4 +1,6 @@
 import { files, conversations, messages, type File, type Conversation, type Message, type InsertFile, type InsertConversation, type InsertMessage } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // File operations
@@ -16,81 +18,54 @@ export interface IStorage {
   getMessagesByConversation(conversationId: number): Promise<Message[]>;
 }
 
-export class MemStorage implements IStorage {
-  private files: Map<number, File>;
-  private conversations: Map<number, Conversation>;
-  private messages: Map<number, Message>;
-  private currentFileId: number;
-  private currentConversationId: number;
-  private currentMessageId: number;
-
-  constructor() {
-    this.files = new Map();
-    this.conversations = new Map();
-    this.messages = new Map();
-    this.currentFileId = 1;
-    this.currentConversationId = 1;
-    this.currentMessageId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async createFile(insertFile: InsertFile): Promise<File> {
-    const id = this.currentFileId++;
-    const file: File = {
-      ...insertFile,
-      id,
-      uploadedAt: new Date(),
-    };
-    this.files.set(id, file);
+    const [file] = await db
+      .insert(files)
+      .values(insertFile)
+      .returning();
     return file;
   }
 
   async getFilesBySession(sessionId: string): Promise<File[]> {
-    return Array.from(this.files.values()).filter(
-      (file) => file.sessionId === sessionId,
-    );
+    return await db.select().from(files).where(eq(files.sessionId, sessionId));
   }
 
   async getFile(id: number): Promise<File | undefined> {
-    return this.files.get(id);
+    const [file] = await db.select().from(files).where(eq(files.id, id));
+    return file || undefined;
   }
 
   async deleteFile(id: number): Promise<void> {
-    this.files.delete(id);
+    await db.delete(files).where(eq(files.id, id));
   }
 
   async createConversation(insertConversation: InsertConversation): Promise<Conversation> {
-    const id = this.currentConversationId++;
-    const conversation: Conversation = {
-      ...insertConversation,
-      id,
-      createdAt: new Date(),
-    };
-    this.conversations.set(id, conversation);
+    const [conversation] = await db
+      .insert(conversations)
+      .values(insertConversation)
+      .returning();
     return conversation;
   }
 
   async getConversationBySession(sessionId: string): Promise<Conversation | undefined> {
-    return Array.from(this.conversations.values()).find(
-      (conversation) => conversation.sessionId === sessionId,
-    );
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.sessionId, sessionId));
+    return conversation || undefined;
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = this.currentMessageId++;
-    const message: Message = {
-      ...insertMessage,
-      id,
-      createdAt: new Date(),
-    };
-    this.messages.set(id, message);
+    const [message] = await db
+      .insert(messages)
+      .values(insertMessage)
+      .returning();
     return message;
   }
 
   async getMessagesByConversation(conversationId: number): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter((message) => message.conversationId === conversationId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    return await db.select().from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
