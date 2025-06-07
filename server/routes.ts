@@ -304,6 +304,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's conversation history
+  app.get("/api/conversations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const conversations = await storage.getConversationsByUser(userId);
+      
+      // Get file counts for each conversation
+      const conversationsWithFiles = await Promise.all(
+        conversations.map(async (conversation) => {
+          const files = await storage.getFilesBySession(conversation.sessionId);
+          const messages = await storage.getMessagesByConversation(conversation.id);
+          return {
+            ...conversation,
+            fileCount: files.length,
+            messageCount: messages.length,
+            files
+          };
+        })
+      );
+      
+      res.json({ conversations: conversationsWithFiles });
+    } catch (error) {
+      console.error("Get conversations error:", error);
+      res.status(500).json({ message: "Failed to get conversations" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

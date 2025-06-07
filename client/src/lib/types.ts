@@ -20,6 +20,7 @@ export interface Conversation {
   sessionId: string;
   contextPrompt: string | null;
   mediaType: string | null;
+  userId?: string | null;
   createdAt: Date;
 }
 

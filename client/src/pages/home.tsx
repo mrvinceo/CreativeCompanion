@@ -4,10 +4,11 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Palette, Lightbulb, LogOut, User } from 'lucide-react';
+import { Palette, Lightbulb, LogOut, User, Plus } from 'lucide-react';
 import { FileUpload } from '@/components/file-upload';
 import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';
+import { ConversationHistory } from '@/components/conversation-history';
 import { type UploadedFile, type ChatMessage, type Conversation } from '@/lib/types';
 import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { user } = useAuth();
-  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [sessionId, setSessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [contextPrompt, setContextPrompt] = useState('');
   const [mediaType, setMediaType] = useState<MediaType | ''>('');
@@ -60,6 +61,44 @@ export default function Home() {
 
     loadFiles();
   }, [sessionId]);
+
+  const handleSelectConversation = async (selectedSessionId: string) => {
+    // Load the selected conversation
+    try {
+      const response = await fetch(`/api/conversation/${selectedSessionId}`);
+      const data = await response.json();
+      
+      if (data.conversation) {
+        setSessionId(selectedSessionId);
+        setConversation(data.conversation);
+        setMessages(data.messages);
+        setContextPrompt(data.conversation.contextPrompt || '');
+        setMediaType((data.conversation.mediaType as MediaType) || '');
+        
+        // Load files for this session
+        const filesResponse = await fetch(`/api/files/${selectedSessionId}`);
+        const filesData = await filesResponse.json();
+        setFiles(filesData.files);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+      toast({
+        title: "Failed to load conversation",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startNewConversation = () => {
+    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setSessionId(newSessionId);
+    setFiles([]);
+    setContextPrompt('');
+    setMediaType('');
+    setConversation(null);
+    setMessages([]);
+  };
 
   const submitForAnalysis = async () => {
     if (!contextPrompt.trim()) {
@@ -132,10 +171,19 @@ export default function Home() {
           <div className="flex items-center space-x-4">
             {user && (
               <>
+                <ConversationHistory onSelectConversation={handleSelectConversation} />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={startNewConversation}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New
+                </Button>
                 <div className="flex items-center space-x-2">
-                  {user.profileImageUrl ? (
+                  {(user as any).profileImageUrl ? (
                     <img 
-                      src={user.profileImageUrl} 
+                      src={(user as any).profileImageUrl} 
                       alt="Profile" 
                       className="w-8 h-8 rounded-full object-cover"
                     />
@@ -145,7 +193,7 @@ export default function Home() {
                     </div>
                   )}
                   <span className="text-sm text-slate-700">
-                    {user.firstName || user.email || 'User'}
+                    {(user as any).firstName || (user as any).email || 'User'}
                   </span>
                 </div>
                 <Button 
