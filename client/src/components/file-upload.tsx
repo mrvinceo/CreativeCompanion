@@ -1,0 +1,168 @@
+import { useCallback, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Upload, X, FileText, Music, Video, Image } from 'lucide-react';
+import { SUPPORTED_FILE_TYPES, MAX_FILE_SIZE, type UploadedFile } from '@/lib/types';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+
+interface FileUploadProps {
+  sessionId: string;
+  files: UploadedFile[];
+  onFilesChange: (files: UploadedFile[]) => void;
+}
+
+export function FileUpload({ sessionId, files, onFilesChange }: FileUploadProps) {
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('sessionId', sessionId);
+      
+      acceptedFiles.forEach(file => {
+        formData.append('files', file);
+      });
+
+      const response = await apiRequest('POST', '/api/upload', formData);
+      const data = await response.json();
+      
+      onFilesChange([...files, ...data.files]);
+      
+      toast({
+        title: "Files uploaded successfully",
+        description: `${acceptedFiles.length} file(s) uploaded`,
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload files. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  }, [sessionId, files, onFilesChange, toast]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: Object.keys(SUPPORTED_FILE_TYPES).reduce((acc, key) => {
+      acc[key] = [];
+      return acc;
+    }, {} as Record<string, string[]>),
+    maxSize: MAX_FILE_SIZE,
+    disabled: uploading,
+  });
+
+  const removeFile = async (fileId: number) => {
+    try {
+      await apiRequest('DELETE', `/api/files/${fileId}`);
+      onFilesChange(files.filter(f => f.id !== fileId));
+      
+      toast({
+        title: "File removed",
+        description: "File deleted successfully",
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return <Image className="w-5 h-5" />;
+    if (mimeType.startsWith('audio/')) return <Music className="w-5 h-5" />;
+    if (mimeType.startsWith('video/')) return <Video className="w-5 h-5" />;
+    if (mimeType === 'application/pdf') return <FileText className="w-5 h-5" />;
+    return <FileText className="w-5 h-5" />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+        <Upload className="w-5 h-5 text-primary mr-2" />
+        Upload Your Creative Work
+      </h2>
+      
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+          isDragActive 
+            ? 'border-primary bg-primary/5' 
+            : 'border-slate-300 hover:border-primary'
+        } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+      >
+        <input {...getInputProps()} />
+        <div className="space-y-4">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
+            <Upload className="w-8 h-8 text-slate-400" />
+          </div>
+          <div>
+            <p className="text-lg font-medium text-slate-900">
+              {uploading ? 'Uploading...' : 'Drop files here or click to upload'}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">
+              Support: JPEG, PNG, MP3, MP4, PDF (Max 50MB each)
+            </p>
+          </div>
+          {!uploading && (
+            <Button variant="default">
+              Choose Files
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {files.length > 0 && (
+        <div className="mt-6 space-y-3">
+          <h3 className="text-sm font-medium text-slate-700">
+            Uploaded Files ({files.length})
+          </h3>
+          
+          {files.map((file) => (
+            <div key={file.id} className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
+              <div className="flex-shrink-0">
+                {getFileIcon(file.mimeType)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-900 truncate">
+                  {file.originalName}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {formatFileSize(file.size)} • {SUPPORTED_FILE_TYPES[file.mimeType as keyof typeof SUPPORTED_FILE_TYPES]}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeFile(file.id)}
+                className="text-slate-400 hover:text-red-500"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}

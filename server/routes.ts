@@ -1,0 +1,274 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import multer from "multer";
+import path from "path";
+import fs from "fs/promises";
+import { insertFileSchema, insertConversationSchema, insertMessageSchema } from "@shared/schema";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Configure multer for file uploads
+const upload = multer({
+  dest: "uploads/",
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      "image/jpeg",
+      "image/png", 
+      "audio/mpeg",
+      "video/mp4",
+      "application/pdf"
+    ];
+    
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only JPEG, PNG, MP3, MP4, and PDF files are allowed."));
+    }
+  }
+});
+
+// Initialize Google Generative AI
+const genAI = new GoogleGenerativeAI(
+  process.env.GOOGLE_API_KEY || 
+  process.env.GEMINI_API_KEY || 
+  process.env.GOOGLE_GEMINI_API_KEY || 
+  ""
+);
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Upload files endpoint
+  app.post("/api/upload", upload.array("files", 10), async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+
+      if (!req.files || !Array.isArray(req.files)) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      const uploadedFiles = [];
+
+      for (const file of req.files) {
+        const fileData = insertFileSchema.parse({
+          filename: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          sessionId,
+        });
+
+        const savedFile = await storage.createFile(fileData);
+        uploadedFiles.push(savedFile);
+      }
+
+      res.json({ files: uploadedFiles });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: "Failed to upload files" });
+    }
+  });
+
+  // Get files by session
+  app.get("/api/files/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const files = await storage.getFilesBySession(sessionId);
+      res.json({ files });
+    } catch (error) {
+      console.error("Get files error:", error);
+      res.status(500).json({ message: "Failed to get files" });
+    }
+  });
+
+  // Delete file
+  app.delete("/api/files/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const file = await storage.getFile(id);
+      
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Delete physical file
+      try {
+        await fs.unlink(path.join("uploads", file.filename));
+      } catch (err) {
+        console.warn("Could not delete physical file:", err);
+      }
+
+      await storage.deleteFile(id);
+      res.json({ message: "File deleted successfully" });
+    } catch (error) {
+      console.error("Delete file error:", error);
+      res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
+  // Start conversation with AI analysis
+  app.post("/api/analyze", async (req, res) => {
+    try {
+      const { sessionId, contextPrompt } = req.body;
+
+      if (!sessionId || !contextPrompt) {
+        return res.status(400).json({ message: "Session ID and context prompt are required" });
+      }
+
+      // Get files for this session
+      const files = await storage.getFilesBySession(sessionId);
+      
+      if (files.length === 0) {
+        return res.status(400).json({ message: "No files found for analysis" });
+      }
+
+      // Create or get conversation
+      let conversation = await storage.getConversationBySession(sessionId);
+      if (!conversation) {
+        const conversationData = insertConversationSchema.parse({
+          sessionId,
+          contextPrompt,
+        });
+        conversation = await storage.createConversation(conversationData);
+      }
+
+      // Prepare content for Gemini
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+      
+      const parts = [
+        {
+          text: `${contextPrompt}\n\nPlease analyze the uploaded files and provide detailed creative feedback. Consider composition, design principles, aesthetics, and any specific aspects mentioned in the context.`
+        }
+      ];
+
+      // Add file data to the request
+      for (const file of files) {
+        try {
+          const filePath = path.join("uploads", file.filename);
+          const fileBuffer = await fs.readFile(filePath);
+          
+          if (file.mimeType.startsWith("image/")) {
+            parts.push({
+              inlineData: {
+                mimeType: file.mimeType,
+                data: fileBuffer.toString("base64")
+              }
+            });
+          }
+          // For other file types, we'll include file info in text
+          else {
+            parts.push({
+              text: `File: ${file.originalName} (${file.mimeType}, ${Math.round(file.size / 1024)}KB)`
+            });
+          }
+        } catch (err) {
+          console.warn(`Could not read file ${file.filename}:`, err);
+        }
+      }
+
+      const result = await model.generateContent(parts);
+      const response = await result.response;
+      const aiMessage = response.text();
+
+      // Save AI response as message
+      const messageData = insertMessageSchema.parse({
+        conversationId: conversation.id,
+        role: "ai",
+        content: aiMessage,
+      });
+
+      const savedMessage = await storage.createMessage(messageData);
+
+      res.json({ 
+        conversation,
+        message: savedMessage 
+      });
+    } catch (error) {
+      console.error("Analysis error:", error);
+      res.status(500).json({ 
+        message: "Failed to analyze files. Please check your API key and try again." 
+      });
+    }
+  });
+
+  // Send follow-up message
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { sessionId, message } = req.body;
+
+      if (!sessionId || !message) {
+        return res.status(400).json({ message: "Session ID and message are required" });
+      }
+
+      const conversation = await storage.getConversationBySession(sessionId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      // Save user message
+      const userMessageData = insertMessageSchema.parse({
+        conversationId: conversation.id,
+        role: "user",
+        content: message,
+      });
+      await storage.createMessage(userMessageData);
+
+      // Get conversation history
+      const messages = await storage.getMessagesByConversation(conversation.id);
+      const files = await storage.getFilesBySession(sessionId);
+
+      // Prepare context for Gemini
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+      
+      const conversationHistory = messages.map(msg => 
+        `${msg.role === "user" ? "User" : "AI"}: ${msg.content}`
+      ).join("\n\n");
+
+      const prompt = `Previous conversation about uploaded creative files:\n\n${conversationHistory}\n\nUser's new question: ${message}\n\nPlease provide a helpful response based on the previous analysis and files discussed.`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const aiMessage = response.text();
+
+      // Save AI response
+      const aiMessageData = insertMessageSchema.parse({
+        conversationId: conversation.id,
+        role: "ai",
+        content: aiMessage,
+      });
+
+      const savedMessage = await storage.createMessage(aiMessageData);
+
+      res.json({ message: savedMessage });
+    } catch (error) {
+      console.error("Chat error:", error);
+      res.status(500).json({ message: "Failed to process message" });
+    }
+  });
+
+  // Get conversation messages
+  app.get("/api/conversation/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      const conversation = await storage.getConversationBySession(sessionId);
+      if (!conversation) {
+        return res.json({ conversation: null, messages: [] });
+      }
+
+      const messages = await storage.getMessagesByConversation(conversation.id);
+      res.json({ conversation, messages });
+    } catch (error) {
+      console.error("Get conversation error:", error);
+      res.status(500).json({ message: "Failed to get conversation" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
