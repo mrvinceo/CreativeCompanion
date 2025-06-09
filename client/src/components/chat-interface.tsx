@@ -6,6 +6,8 @@ import { Bot, User, Send, Copy, ThumbsUp } from 'lucide-react';
 import { type ChatMessage, type Conversation } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatInterfaceProps {
   sessionId: string;
@@ -135,7 +137,16 @@ export function ChatInterface({
                   <div className={`prose prose-sm max-w-none ${
                     message.role === 'user' ? 'prose-invert' : ''
                   }`}>
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    {message.role === 'ai' ? (
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        className="whitespace-pre-wrap"
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    )}
                   </div>
                 </div>
                 
