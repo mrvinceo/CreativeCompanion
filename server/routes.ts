@@ -457,16 +457,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (plan === 'standard') {
         priceId = process.env.STRIPE_STANDARD_PRICE_ID;
         if (!priceId) {
+          console.error('STRIPE_STANDARD_PRICE_ID not configured');
           return res.status(503).json({ message: "Payment system configuration incomplete. Please contact support." });
         }
       } else if (plan === 'premium') {
         priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
         if (!priceId) {
+          console.error('STRIPE_PREMIUM_PRICE_ID not configured');
           return res.status(503).json({ message: "Payment system configuration incomplete. Please contact support." });
         }
       } else {
         return res.status(400).json({ message: "Invalid plan" });
       }
+
+      console.log(`Creating subscription for plan ${plan} with price ID: ${priceId.substring(0, 10)}...`);
 
       // Create or get Stripe customer
       let stripeCustomerId = user.stripeCustomerId;
@@ -488,7 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price: priceId,
           quantity: 1,
         }],
-        success_url: `${req.headers.origin}/?success=true`,
+        success_url: `${req.headers.origin}/success`,
         cancel_url: `${req.headers.origin}/?canceled=true`,
         metadata: { userId, plan },
       });
@@ -518,34 +522,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
+    console.log(`Received webhook: ${event.type}`);
+
     // Handle the event
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as any;
-        const userId = session.metadata.userId;
-        const plan = session.metadata.plan;
-        
-        await storage.updateUserSubscription(userId, {
-          stripeSubscriptionId: session.subscription,
-          subscriptionStatus: 'active',
-          subscriptionPlan: plan,
-          billingPeriodStart: new Date(),
-        });
-        break;
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as any;
+          const userId = session.metadata?.userId;
+          const plan = session.metadata?.plan;
+          
+          console.log(`Checkout completed for user ${userId}, plan ${plan}`);
+          
+          if (userId && plan) {
+            await storage.updateUserSubscription(userId, {
+              stripeCustomerId: session.customer,
+              stripeSubscriptionId: session.subscription,
+              subscriptionStatus: 'active',
+              subscriptionPlan: plan,
+              billingPeriodStart: new Date(),
+            });
+            console.log(`Updated subscription for user ${userId}`);
+          } else {
+            console.error('Missing userId or plan in session metadata');
+          }
+          break;
+        }
+        case 'customer.subscription.updated': {
+          const subscription = event.data.object as any;
+          console.log(`Subscription updated: ${subscription.id}, status: ${subscription.status}`);
+          // Would need getUserByStripeCustomerId method to implement this
+          break;
+        }
+        case 'customer.subscription.deleted': {
+          const subscription = event.data.object as any;
+          console.log(`Subscription deleted: ${subscription.id}`);
+          // Would need getUserByStripeCustomerId method to implement this
+          break;
+        }
+        default:
+          console.log(`Unhandled event type ${event.type}`);
       }
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as any;
-        // Find user by stripe customer ID
-        // Note: This would require adding a method to find user by stripe customer ID
-        break;
-      }
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as any;
-        // Find user and downgrade to free
-        break;
-      }
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+    } catch (error) {
+      console.error('Webhook processing error:', error);
+      return res.status(500).json({ error: 'Webhook processing failed' });
     }
 
     res.json({ received: true });
