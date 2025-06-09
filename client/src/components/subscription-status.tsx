@@ -33,10 +33,18 @@ export function SubscriptionStatus() {
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch (error) {
+    } catch (error: any) {
+      let title = "Upgrade failed";
+      let description = "Please try again later";
+      
+      if (error.message?.includes('503') || error.message?.includes('configuration incomplete')) {
+        title = "Payment system unavailable";
+        description = "Payment processing is being configured. Please contact support for manual upgrade.";
+      }
+      
       toast({
-        title: "Upgrade failed",
-        description: "Please try again later",
+        title,
+        description,
         variant: "destructive",
       });
     } finally {

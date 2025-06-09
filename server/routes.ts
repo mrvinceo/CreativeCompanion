@@ -452,11 +452,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Academic users already have premium access" });
       }
 
+      // Check if Stripe price IDs are configured
       let priceId;
       if (plan === 'standard') {
-        priceId = process.env.STRIPE_STANDARD_PRICE_ID || 'price_standard'; // £10/month
+        priceId = process.env.STRIPE_STANDARD_PRICE_ID;
+        if (!priceId) {
+          return res.status(503).json({ message: "Payment system configuration incomplete. Please contact support." });
+        }
       } else if (plan === 'premium') {
-        priceId = process.env.STRIPE_PREMIUM_PRICE_ID || 'price_premium'; // £15/month
+        priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
+        if (!priceId) {
+          return res.status(503).json({ message: "Payment system configuration incomplete. Please contact support." });
+        }
       } else {
         return res.status(400).json({ message: "Invalid plan" });
       }
@@ -487,8 +494,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({ url: session.url });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create subscription error:", error);
+      
+      // Handle specific Stripe errors
+      if (error.type === 'StripeInvalidRequestError' && error.code === 'resource_missing') {
+        return res.status(503).json({ message: "Payment system configuration incomplete. Please contact support." });
+      }
+      
       res.status(500).json({ message: "Failed to create subscription" });
     }
   });
