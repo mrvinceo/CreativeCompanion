@@ -101,7 +101,7 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-2">
                         {conversation.mediaType && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs text-[#ffffff]">
                             {MEDIA_TYPES[conversation.mediaType as keyof typeof MEDIA_TYPES]?.label || conversation.mediaType}
                           </Badge>
                         )}

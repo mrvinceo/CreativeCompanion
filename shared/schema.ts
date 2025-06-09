@@ -20,6 +20,12 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  subscriptionStatus: varchar("subscription_status"), // active, canceled, past_due, etc.
+  subscriptionPlan: varchar("subscription_plan"), // free, standard, premium
+  conversationsThisMonth: integer("conversations_this_month").default(0),
+  billingPeriodStart: timestamp("billing_period_start"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

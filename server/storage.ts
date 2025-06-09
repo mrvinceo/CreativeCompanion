@@ -6,6 +6,15 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserSubscription(userId: string, subscriptionData: {
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: string;
+    subscriptionPlan?: string;
+    billingPeriodStart?: Date;
+  }): Promise<User>;
+  incrementUserConversations(userId: string): Promise<User>;
+  resetMonthlyConversations(userId: string): Promise<User>;
 
   // File operations
   createFile(file: InsertFile): Promise<File>;
@@ -34,7 +43,12 @@ export class DatabaseStorage implements IStorage {
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values({
+        ...userData,
+        subscriptionPlan: userData.email?.endsWith('oca.ac.uk') ? 'academic' : 'free',
+        conversationsThisMonth: 0,
+        billingPeriodStart: new Date(),
+      })
       .onConflictDoUpdate({
         target: users.id,
         set: {
@@ -42,6 +56,52 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async updateUserSubscription(userId: string, subscriptionData: {
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: string;
+    subscriptionPlan?: string;
+    billingPeriodStart?: Date;
+  }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...subscriptionData,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async incrementUserConversations(userId: string): Promise<User> {
+    const currentUser = await this.getUser(userId);
+    if (!currentUser) throw new Error('User not found');
+    
+    const [user] = await db
+      .update(users)
+      .set({
+        conversationsThisMonth: (currentUser.conversationsThisMonth || 0) + 1,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async resetMonthlyConversations(userId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        conversationsThisMonth: 0,
+        billingPeriodStart: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }
