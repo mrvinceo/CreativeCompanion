@@ -17,6 +17,10 @@ export function FilePreview({ files }: FilePreviewProps) {
     return <FileText className="w-8 h-8 text-gray-500" />;
   };
 
+  const isImageFile = (mimeType: string) => {
+    return mimeType.startsWith('image/') && (mimeType.includes('jpeg') || mimeType.includes('jpg') || mimeType.includes('png'));
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -28,13 +32,25 @@ export function FilePreview({ files }: FilePreviewProps) {
   return (
     <Card className="p-4">
       <h3 className="text-sm font-medium text-slate-700 mb-3">
-        Files Ready for Analysis ({files.length})
+        Files Ready for Feedback ({files.length})
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {files.map((file) => (
           <div key={file.id} className="flex flex-col items-center p-3 bg-slate-50 rounded-lg">
-            {getFileIcon(file.mimeType)}
-            <p className="text-xs font-medium text-slate-900 mt-2 text-center truncate w-full">
+            {isImageFile(file.mimeType) ? (
+              <div className="w-20 h-20 mb-2">
+                <img 
+                  src={`/api/files/${file.id}/content`}
+                  alt={file.originalName}
+                  className="w-full h-full object-cover rounded border border-slate-200"
+                />
+              </div>
+            ) : (
+              <div className="mb-2">
+                {getFileIcon(file.mimeType)}
+              </div>
+            )}
+            <p className="text-xs font-medium text-slate-900 text-center truncate w-full">
               {file.originalName}
             </p>
             <p className="text-xs text-slate-500">
