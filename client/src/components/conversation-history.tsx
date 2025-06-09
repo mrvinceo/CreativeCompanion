@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, MessageSquare, FileText, Calendar, ChevronRight } from 'lucide-react';
+import { History, MessageSquare, FileText, Calendar, ChevronRight, Image, Music, Video, FileType } from 'lucide-react';
 import { MEDIA_TYPES } from '@/lib/media-types';
 
 interface ConversationHistoryItem {
@@ -49,6 +49,17 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
   const handleSelectConversation = (sessionId: string) => {
     onSelectConversation(sessionId);
     setIsOpen(false);
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return Image;
+    if (mimeType.startsWith('audio/')) return Music;
+    if (mimeType.startsWith('video/')) return Video;
+    return FileType;
+  };
+
+  const isImageFile = (mimeType: string) => {
+    return mimeType.startsWith('image/') && (mimeType.includes('jpeg') || mimeType.includes('jpg') || mimeType.includes('png'));
   };
 
   return (
@@ -116,19 +127,49 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
                       </div>
                       
                       {conversation.files.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {conversation.files.slice(0, 3).map((file) => (
-                            <Badge key={file.id} variant="outline" className="text-xs">
-                              {file.originalName.length > 15 
-                                ? `${file.originalName.substring(0, 15)}...` 
-                                : file.originalName}
-                            </Badge>
-                          ))}
-                          {conversation.files.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{conversation.files.length - 3} more
-                            </Badge>
-                          )}
+                        <div className="mt-3 space-y-2">
+                          {/* Image previews */}
+                          <div className="flex flex-wrap gap-2">
+                            {conversation.files
+                              .filter(file => isImageFile(file.mimeType))
+                              .slice(0, 4)
+                              .map((file) => (
+                                <div key={file.id} className="relative">
+                                  <img 
+                                    src={`/api/files/${file.id}/content`}
+                                    alt={file.originalName}
+                                    className="w-12 h-12 rounded object-cover border border-slate-200"
+                                  />
+                                </div>
+                              ))}
+                          </div>
+                          
+                          {/* Non-image files */}
+                          <div className="flex flex-wrap gap-1">
+                            {conversation.files
+                              .filter(file => !isImageFile(file.mimeType))
+                              .slice(0, 3)
+                              .map((file) => {
+                                const IconComponent = getFileIcon(file.mimeType);
+                                return (
+                                  <div key={file.id} className="flex items-center space-x-1 bg-slate-100 rounded px-2 py-1">
+                                    <IconComponent className="w-3 h-3 text-slate-500" />
+                                    <span className="text-xs text-slate-600">
+                                      {file.originalName.length > 12 
+                                        ? `${file.originalName.substring(0, 12)}...` 
+                                        : file.originalName}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            {conversation.files.filter(file => !isImageFile(file.mimeType)).length > 3 && (
+                              <div className="flex items-center space-x-1 bg-slate-100 rounded px-2 py-1">
+                                <span className="text-xs text-slate-600">
+                                  +{conversation.files.filter(file => !isImageFile(file.mimeType)).length - 3} more
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

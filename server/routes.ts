@@ -116,6 +116,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve file content
+  app.get("/api/files/:fileId/content", async (req, res) => {
+    try {
+      const { fileId } = req.params;
+      const file = await storage.getFile(parseInt(fileId));
+      
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      const fs = await import('fs');
+      const path = await import('path');
+      const filePath = path.join(process.cwd(), 'uploads', file.filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File content not found" });
+      }
+
+      res.setHeader('Content-Type', file.mimeType);
+      res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Serve file error:", error);
+      res.status(500).json({ message: "Failed to serve file" });
+    }
+  });
+
   // Delete file
   app.delete("/api/files/:id", async (req, res) => {
     try {
