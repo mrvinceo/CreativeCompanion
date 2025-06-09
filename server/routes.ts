@@ -7,6 +7,12 @@ import path from "path";
 import fs from "fs/promises";
 import { insertFileSchema, insertConversationSchema, insertMessageSchema } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Stripe from "stripe";
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Media type system prompts
 const MEDIA_SYSTEM_PROMPTS = {
@@ -170,13 +176,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to get usage limits
+  const getUsageLimit = (user: any) => {
+    if (user.email?.endsWith('oca.ac.uk')) return 50; // Academic users
+    if (user.subscriptionPlan === 'premium') return 50; // £15/month
+    if (user.subscriptionPlan === 'standard') return 30; // £10/month
+    return 5; // Free users
+  };
+
+  // Helper function to check if user has exceeded limits
+  const checkUsageLimit = async (userId: string) => {
+    const user = await storage.getUser(userId);
+    if (!user) throw new Error('User not found');
+
+    // Check if billing period needs reset (monthly)
+    const now = new Date();
+    const billingStart = user.billingPeriodStart ? new Date(user.billingPeriodStart) : new Date();
+    const monthsSince = (now.getFullYear() - billingStart.getFullYear()) * 12 + (now.getMonth() - billingStart.getMonth());
+    
+    if (monthsSince >= 1) {
+      // Reset monthly usage
+      await storage.resetMonthlyConversations(userId);
+      return { canUse: true, user: await storage.getUser(userId) };
+    }
+
+    const limit = getUsageLimit(user);
+    const used = user.conversationsThisMonth || 0;
+    
+    return { canUse: used < limit, user, used, limit };
+  };
+
   // Start conversation with AI analysis
-  app.post("/api/analyze", async (req, res) => {
+  app.post("/api/analyze", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const { sessionId, contextPrompt, mediaType } = req.body;
 
       if (!sessionId || !contextPrompt || !mediaType) {
         return res.status(400).json({ message: "Session ID, context prompt, and media type are required" });
+      }
+
+      // Check usage limits
+      const usageCheck = await checkUsageLimit(userId);
+      if (!usageCheck.canUse) {
+        return res.status(403).json({ 
+          message: "Monthly conversation limit reached", 
+          used: usageCheck.used,
+          limit: usageCheck.limit,
+          needsUpgrade: true
+        });
       }
 
       // Get files for this session
@@ -189,7 +237,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create or get conversation
       let conversation = await storage.getConversationBySession(sessionId);
       if (!conversation) {
-        const userId = req.user?.claims?.sub || null;
         const conversationData = insertConversationSchema.parse({
           sessionId,
           contextPrompt,
@@ -197,6 +244,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId,
         });
         conversation = await storage.createConversation(conversationData);
+        
+        // Increment user's conversation count for new conversations
+        await storage.incrementUserConversations(userId);
       }
 
       // Prepare content for Gemini
@@ -358,6 +408,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Get conversations error:", error);
       res.status(500).json({ message: "Failed to get conversations" });
     }
+  });
+
+  // Get user subscription info and usage
+  app.get("/api/subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const limit = getUsageLimit(user);
+      const used = user.conversationsThisMonth || 0;
+      
+      res.json({
+        subscriptionPlan: user.subscriptionPlan || 'free',
+        subscriptionStatus: user.subscriptionStatus,
+        conversationsThisMonth: used,
+        conversationLimit: limit,
+        isAcademic: user.email?.endsWith('oca.ac.uk') || false,
+      });
+    } catch (error) {
+      console.error("Get subscription error:", error);
+      res.status(500).json({ message: "Failed to get subscription info" });
+    }
+  });
+
+  // Create Stripe checkout session for subscription
+  app.post("/api/create-subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { plan } = req.body; // 'standard' or 'premium'
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Don't allow academic users to subscribe
+      if (user.email?.endsWith('oca.ac.uk')) {
+        return res.status(400).json({ message: "Academic users already have premium access" });
+      }
+
+      let priceId;
+      if (plan === 'standard') {
+        priceId = process.env.STRIPE_STANDARD_PRICE_ID || 'price_standard'; // £10/month
+      } else if (plan === 'premium') {
+        priceId = process.env.STRIPE_PREMIUM_PRICE_ID || 'price_premium'; // £15/month
+      } else {
+        return res.status(400).json({ message: "Invalid plan" });
+      }
+
+      // Create or get Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          metadata: { userId },
+        });
+        stripeCustomerId = customer.id;
+        await storage.updateUserSubscription(userId, { stripeCustomerId });
+      }
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: stripeCustomerId,
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        line_items: [{
+          price: priceId,
+          quantity: 1,
+        }],
+        success_url: `${req.headers.origin}/?success=true`,
+        cancel_url: `${req.headers.origin}/?canceled=true`,
+        metadata: { userId, plan },
+      });
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error("Create subscription error:", error);
+      res.status(500).json({ message: "Failed to create subscription" });
+    }
+  });
+
+  // Handle Stripe webhooks
+  app.post("/api/stripe-webhook", async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET || '');
+    } catch (err: any) {
+      console.log(`Webhook signature verification failed.`, err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as any;
+        const userId = session.metadata.userId;
+        const plan = session.metadata.plan;
+        
+        await storage.updateUserSubscription(userId, {
+          stripeSubscriptionId: session.subscription,
+          subscriptionStatus: 'active',
+          subscriptionPlan: plan,
+          billingPeriodStart: new Date(),
+        });
+        break;
+      }
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as any;
+        // Find user by stripe customer ID
+        // Note: This would require adding a method to find user by stripe customer ID
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as any;
+        // Find user and downgrade to free
+        break;
+      }
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+
+    res.json({ received: true });
   });
 
   const httpServer = createServer(app);

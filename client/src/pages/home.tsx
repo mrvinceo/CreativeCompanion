@@ -9,6 +9,7 @@ import { FileUpload } from '@/components/file-upload';
 import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';
 import { ConversationHistory } from '@/components/conversation-history';
+import { SubscriptionStatus } from '@/components/subscription-status';
 import { type UploadedFile, type ChatMessage, type Conversation } from '@/lib/types';
 import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
 import { useAuth } from '@/hooks/useAuth';
@@ -217,6 +218,8 @@ export default function Home() {
       <main className="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-6 gap-6">
         {/* Upload Panel */}
         <div className="lg:w-1/2 space-y-6">
+          <SubscriptionStatus />
+          
           <FileUpload 
             sessionId={sessionId}
             files={files}
