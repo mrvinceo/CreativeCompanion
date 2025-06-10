@@ -1,4 +1,4 @@
-import { users, files, conversations, messages, type User, type UpsertUser, type File, type Conversation, type Message, type InsertFile, type InsertConversation, type InsertMessage } from "@shared/schema";
+import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
@@ -39,6 +39,19 @@ export interface IStorage {
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByConversation(conversationId: number): Promise<Message[]>;
+
+  // Cultural discovery operations
+  createDiscoveryLocation(location: InsertDiscoveryLocation): Promise<DiscoveryLocation>;
+  getDiscoveryLocationsByUser(userId: string): Promise<DiscoveryLocation[]>;
+  getDiscoveryLocationsByArea(centerLat: string, centerLng: string, radius: number): Promise<DiscoveryLocation[]>;
+  
+  createFavoriteLocation(favorite: InsertFavoriteLocation): Promise<FavoriteLocation>;
+  getFavoriteLocationsByUser(userId: string): Promise<FavoriteLocation[]>;
+  removeFavoriteLocation(userId: string, locationId: number): Promise<void>;
+  
+  createSavedDiscovery(discovery: InsertSavedDiscovery): Promise<SavedDiscovery>;
+  getSavedDiscoveriesByUser(userId: string): Promise<SavedDiscovery[]>;
+  deleteSavedDiscovery(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -198,6 +211,57 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(messages)
       .where(eq(messages.conversationId, conversationId))
       .orderBy(messages.createdAt);
+  }
+
+  // Cultural discovery operations
+  async createDiscoveryLocation(insertLocation: InsertDiscoveryLocation): Promise<DiscoveryLocation> {
+    const [location] = await db
+      .insert(discoveryLocations)
+      .values(insertLocation)
+      .returning();
+    return location;
+  }
+
+  async getDiscoveryLocationsByUser(userId: string): Promise<DiscoveryLocation[]> {
+    return await db.select().from(discoveryLocations).where(eq(discoveryLocations.userId, userId));
+  }
+
+  async getDiscoveryLocationsByArea(centerLat: string, centerLng: string, radius: number): Promise<DiscoveryLocation[]> {
+    // Simple proximity search - in production would use PostGIS or similar
+    return await db.select().from(discoveryLocations);
+  }
+
+  async createFavoriteLocation(insertFavorite: InsertFavoriteLocation): Promise<FavoriteLocation> {
+    const [favorite] = await db
+      .insert(favoriteLocations)
+      .values(insertFavorite)
+      .returning();
+    return favorite;
+  }
+
+  async getFavoriteLocationsByUser(userId: string): Promise<FavoriteLocation[]> {
+    return await db.select().from(favoriteLocations).where(eq(favoriteLocations.userId, userId));
+  }
+
+  async removeFavoriteLocation(userId: string, locationId: number): Promise<void> {
+    await db.delete(favoriteLocations)
+      .where(eq(favoriteLocations.userId, userId) && eq(favoriteLocations.locationId, locationId));
+  }
+
+  async createSavedDiscovery(insertDiscovery: InsertSavedDiscovery): Promise<SavedDiscovery> {
+    const [discovery] = await db
+      .insert(savedDiscoveries)
+      .values(insertDiscovery)
+      .returning();
+    return discovery;
+  }
+
+  async getSavedDiscoveriesByUser(userId: string): Promise<SavedDiscovery[]> {
+    return await db.select().from(savedDiscoveries).where(eq(savedDiscoveries.userId, userId));
+  }
+
+  async deleteSavedDiscovery(id: number): Promise<void> {
+    await db.delete(savedDiscoveries).where(eq(savedDiscoveries.id, id));
   }
 }
 

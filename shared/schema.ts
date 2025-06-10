@@ -61,6 +61,45 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Cultural discovery tables
+export const discoveryLocations = pgTable("discovery_locations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  latitude: text("latitude").notNull(),
+  longitude: text("longitude").notNull(),
+  address: text("address"),
+  category: varchar("category"), // museum, gallery, theater, historical_site, etc.
+  website: varchar("website"),
+  phone: varchar("phone"),
+  openingHours: text("opening_hours"),
+  culturalSignificance: text("cultural_significance"),
+  aiGenerated: boolean("ai_generated").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const favoriteLocations = pgTable("favorite_locations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  locationId: integer("location_id").references(() => discoveryLocations.id).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const savedDiscoveries = pgTable("saved_discoveries", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  centerLatitude: text("center_latitude").notNull(),
+  centerLongitude: text("center_longitude").notNull(),
+  locationIds: integer("location_ids").array(),
+  searchQuery: text("search_query"),
+  userInterests: text("user_interests").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertFileSchema = createInsertSchema(files).omit({
   id: true,
   uploadedAt: true,
@@ -76,13 +115,34 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   createdAt: true,
 });
 
+export const insertDiscoveryLocationSchema = createInsertSchema(discoveryLocations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFavoriteLocationSchema = createInsertSchema(favoriteLocations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSavedDiscoverySchema = createInsertSchema(savedDiscoveries).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
 export type InsertFile = z.infer<typeof insertFileSchema>;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type InsertDiscoveryLocation = z.infer<typeof insertDiscoveryLocationSchema>;
+export type InsertFavoriteLocation = z.infer<typeof insertFavoriteLocationSchema>;
+export type InsertSavedDiscovery = z.infer<typeof insertSavedDiscoverySchema>;
 
 export type File = typeof files.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+export type DiscoveryLocation = typeof discoveryLocations.$inferSelect;
+export type FavoriteLocation = typeof favoriteLocations.$inferSelect;
+export type SavedDiscovery = typeof savedDiscoveries.$inferSelect;
