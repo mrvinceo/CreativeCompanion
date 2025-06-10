@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { MapPin, Heart, Search, Loader2, Star, Camera, Music, Palette, BookOpen } from "lucide-react";
+import { MapPin, Heart, Search, Loader2, Star, Camera, Music, Palette, BookOpen, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface DiscoveryLocation {
   id: number;
@@ -55,6 +56,7 @@ const categoryIcons = {
 
 export default function CulturalDiscovery() {
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [discoveryResults, setDiscoveryResults] = useState<DiscoveryLocation[]>([]);
@@ -253,11 +255,20 @@ export default function CulturalDiscovery() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Cultural Discovery</h1>
-          <p className="text-muted-foreground">
-            Discover cultural and creative points of interest based on your location and interests
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation('/')}
+            className="p-2"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Cultural Discovery</h1>
+            <p className="text-muted-foreground">
+              Discover cultural and creative points of interest based on your location and interests
+            </p>
+          </div>
         </div>
       </div>
 

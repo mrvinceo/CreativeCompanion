@@ -16,9 +16,11 @@ import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 export default function Home() {
   const { user } = useAuth();
+  const [location, setLocation] = useLocation();
   const [sessionId, setSessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [contextPrompt, setContextPrompt] = useState('');
@@ -182,6 +184,15 @@ export default function Home() {
             {user && (
               <>
                 <ConversationHistory onSelectConversation={handleSelectConversation} />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setLocation('/cultural-discovery')}
+                  className="px-2 sm:px-3"
+                >
+                  <MapPin className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Discover</span>
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
