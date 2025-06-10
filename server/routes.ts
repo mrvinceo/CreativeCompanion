@@ -161,8 +161,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(404).json({ message: "File content not found" });
           }
         } else {
-          // Object Storage returns a Result with value as Buffer
-          fileBuffer = fileResult.value as any;
+          // Object Storage returns a Result with value as array containing Buffer
+          fileBuffer = Array.isArray(fileResult.value) ? fileResult.value[0] : fileResult.value;
         }
       } catch (error) {
         console.error("File retrieval error:", error);
@@ -308,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 continue;
               }
             } else {
-              fileBuffer = fileResult.value as any;
+              fileBuffer = Array.isArray(fileResult.value) ? fileResult.value[0] : fileResult.value;
             }
             
             const titlePrompt = `Analyze this image and create a short, descriptive title (maximum 5-8 words) that captures the main subject and essence of the work. Focus on what makes this image unique or interesting. Be specific but concise.
@@ -367,7 +367,7 @@ Provide only the title, no additional text.`;
               continue;
             }
           } else {
-            fileBuffer = fileResult.value as any;
+            fileBuffer = Array.isArray(fileResult.value) ? fileResult.value[0] : fileResult.value;
           }
           
           if (file.mimeType.startsWith("image/")) {
@@ -651,7 +651,7 @@ Provide only the title, no additional text.`;
           return res.status(404).json({ message: "Original file not found" });
         }
       } else {
-        originalFileBuffer = originalFileResult.value as any;
+        originalFileBuffer = Array.isArray(originalFileResult.value) ? originalFileResult.value[0] : originalFileResult.value;
       }
 
       // Get new file
@@ -665,7 +665,7 @@ Provide only the title, no additional text.`;
           return res.status(404).json({ message: "New file not found" });
         }
       } else {
-        newFileBuffer = newFileResult.value as any;
+        newFileBuffer = Array.isArray(newFileResult.value) ? newFileResult.value[0] : newFileResult.value;
       }
 
       // Build conversation context
