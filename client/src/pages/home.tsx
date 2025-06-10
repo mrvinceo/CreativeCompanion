@@ -143,6 +143,13 @@ export default function Home() {
       setConversation(data.conversation);
       setMessages([data.message]);
 
+      // Refresh file data to include AI-generated titles
+      const updatedFilesResponse = await fetch(`/api/files/${sessionId}`);
+      const updatedFilesData = await updatedFilesResponse.json();
+      if (updatedFilesData.files) {
+        setFiles(updatedFilesData.files);
+      }
+
       toast({
         title: "Analysis complete",
         description: "Your creative work has been analyzed",
