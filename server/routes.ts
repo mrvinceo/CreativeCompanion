@@ -100,7 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
         
         // Upload to Object Storage
-        await objectStorage.upload(uniqueFilename, file.buffer);
+        await objectStorage.uploadFromBytes(uniqueFilename, file.buffer);
 
         const userId = req.user?.claims?.sub || null;
         const fileData = insertFileSchema.parse({
@@ -146,13 +146,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get file from Object Storage
-      const objectUrl = await objectStorage.getDownloadUrl(file.filename);
+      const fileResult = await objectStorage.downloadAsBytes(file.filename);
+      
+      if (fileResult.error) {
+        return res.status(404).json({ message: "File content not found in storage" });
+      }
+      
+      const fileBuffer = fileResult.value;
       
       res.setHeader('Content-Type', file.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`);
+      res.setHeader('Content-Length', fileBuffer.length.toString());
       
-      // Redirect to the Object Storage URL
-      res.redirect(objectUrl);
+      // Send the file buffer
+      res.send(fileBuffer);
     } catch (error) {
       console.error("Serve file error:", error);
       res.status(500).json({ message: "Failed to serve file" });
@@ -169,11 +176,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "File not found" });
       }
 
-      // Delete physical file
+      // Delete file from Object Storage
       try {
-        await fs.unlink(path.join("uploads", file.filename));
+        await objectStorage.delete(file.filename);
       } catch (err) {
-        console.warn("Could not delete physical file:", err);
+        console.warn("Could not delete file from Object Storage:", err);
       }
 
       await storage.deleteFile(id);
@@ -272,8 +279,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const file of files) {
         if (file.mimeType.startsWith('image/') && !file.title) {
           try {
-            const filePath = path.join("uploads", file.filename);
-            const fileBuffer = await fs.readFile(filePath);
+            // Get file from Object Storage
+            const fileResult = await objectStorage.downloadAsBytes(file.filename);
+            if (fileResult.error) {
+              console.warn(`Could not download file ${file.filename} for title generation:`, fileResult.error);
+              continue;
+            }
+            const fileBuffer = fileResult.value;
             
             const titlePrompt = `Analyze this image and create a short, descriptive title (maximum 5-8 words) that captures the main subject and essence of the work. Focus on what makes this image unique or interesting. Be specific but concise.
 
@@ -311,8 +323,13 @@ Provide only the title, no additional text.`;
       // Add file data to the request
       for (const file of updatedFiles) {
         try {
-          const filePath = path.join("uploads", file.filename);
-          const fileBuffer = await fs.readFile(filePath);
+          // Get file from Object Storage
+          const fileResult = await objectStorage.downloadAsBytes(file.filename);
+          if (fileResult.error) {
+            console.warn(`Could not download file ${file.filename} for analysis:`, fileResult.error);
+            continue;
+          }
+          const fileBuffer = fileResult.value;
           
           if (file.mimeType.startsWith("image/")) {
             parts.push({
@@ -320,7 +337,7 @@ Provide only the title, no additional text.`;
                 mimeType: file.mimeType,
                 data: fileBuffer.toString("base64")
               }
-            });
+            } as any);
           }
           // For other file types, we'll include file info in text
           else {
@@ -572,19 +589,16 @@ Provide only the title, no additional text.`;
       // Get conversation history for context
       const existingMessages = await storage.getMessagesByConversation(conversation.id);
       
-      // Prepare files for AI analysis
-      const originalFilePath = path.join(process.cwd(), 'uploads', originalFile.filename);
-      const newFilePath = path.join(process.cwd(), 'uploads', newFile.filename);
+      // Get files from Object Storage
+      const originalFileResult = await objectStorage.downloadAsBytes(originalFile.filename);
+      const newFileResult = await objectStorage.downloadAsBytes(newFile.filename);
 
-      console.log('File paths:', { originalFilePath, newFilePath });
-
-      // Check if files exist
-      if (!fsSync.existsSync(originalFilePath) || !fsSync.existsSync(newFilePath)) {
-        return res.status(404).json({ message: "File not found on disk" });
+      if (originalFileResult.error || newFileResult.error) {
+        return res.status(404).json({ message: "File not found in storage" });
       }
 
-      const originalFileBuffer = fsSync.readFileSync(originalFilePath);
-      const newFileBuffer = fsSync.readFileSync(newFilePath);
+      const originalFileBuffer = originalFileResult.value;
+      const newFileBuffer = newFileResult.value;
 
       // Build conversation context
       const conversationContext = existingMessages
