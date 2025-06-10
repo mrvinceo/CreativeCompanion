@@ -26,6 +26,8 @@ export const users = pgTable("users", {
   subscriptionPlan: varchar("subscription_plan"), // free, standard, premium
   conversationsThisMonth: integer("conversations_this_month").default(0),
   billingPeriodStart: timestamp("billing_period_start"),
+  artistStatement: text("artist_statement"),
+  interests: text("interests").array(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

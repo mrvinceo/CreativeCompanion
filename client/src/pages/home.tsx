@@ -10,6 +10,7 @@ import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';
 import { ConversationHistory } from '@/components/conversation-history';
 import { SubscriptionStatus } from '@/components/subscription-status';
+import { ProfileDialog } from '@/components/profile-dialog';
 import { type UploadedFile, type ChatMessage, type Conversation } from '@/lib/types';
 import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
 import { useAuth } from '@/hooks/useAuth';

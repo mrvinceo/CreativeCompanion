@@ -13,6 +13,13 @@ export interface IStorage {
     subscriptionPlan?: string;
     billingPeriodStart?: Date;
   }): Promise<User>;
+  updateUserProfile(userId: string, profileData: {
+    firstName?: string;
+    lastName?: string;
+    artistStatement?: string;
+    interests?: string[];
+    profileImageUrl?: string;
+  }): Promise<User>;
   incrementUserConversations(userId: string): Promise<User>;
   resetMonthlyConversations(userId: string): Promise<User>;
 
@@ -99,6 +106,24 @@ export class DatabaseStorage implements IStorage {
       .set({
         conversationsThisMonth: 0,
         billingPeriodStart: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserProfile(userId: string, profileData: {
+    firstName?: string;
+    lastName?: string;
+    artistStatement?: string;
+    interests?: string[];
+    profileImageUrl?: string;
+  }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...profileData,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId))

@@ -436,6 +436,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile
+  app.put("/api/profile", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { firstName, lastName, artistStatement, interests, profileImageUrl } = req.body;
+
+      // Validate artist statement length
+      if (artistStatement && artistStatement.length > 2500) { // ~500 words
+        return res.status(400).json({ message: "Artist statement too long (max 500 words)" });
+      }
+
+      const user = await storage.updateUserProfile(userId, {
+        firstName,
+        lastName,
+        artistStatement,
+        interests,
+        profileImageUrl,
+      });
+
+      res.json(user);
+    } catch (error) {
+      console.error("Update profile error:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Upload profile image
+  app.post("/api/upload-profile-image", isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      // In a real app, you'd upload to a cloud storage service like AWS S3, Cloudinary, etc.
+      // For now, we'll store locally and return a URL
+      const imageUrl = `/uploads/${req.file.filename}`;
+      
+      res.json({ url: imageUrl });
+    } catch (error) {
+      console.error("Image upload error:", error);
+      res.status(500).json({ message: "Failed to upload image" });
+    }
+  });
+
   // Create Stripe checkout session for subscription
   app.post("/api/create-subscription", isAuthenticated, async (req: any, res) => {
     try {
