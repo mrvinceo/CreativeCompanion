@@ -42,33 +42,33 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
   const [infoWindows, setInfoWindows] = useState(new Map());
 
   useEffect(() => {
-    const initMap = async () => {
-      if (!mapRef.current) return;
+    if (!locations.length || !center) return;
 
+    const initMap = async () => {
       try {
+        if (!mapRef.current) {
+          setError('Map container not available');
+          setIsLoading(false);
+          return;
+        }
+
         const loader = new Loader({
           apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
           version: 'weekly',
-          libraries: ['maps', 'marker']
+          libraries: ['maps']
         });
 
-        const { Map } = await loader.importLibrary('maps');
-        const { AdvancedMarkerElement } = await loader.importLibrary('marker');
+        const google = await loader.load();
 
-        const mapInstance = new Map(mapRef.current, {
+        const mapInstance = new google.maps.Map(mapRef.current, {
           center: { lat: center.latitude, lng: center.longitude },
           zoom: 12,
           mapTypeControl: false,
           streetViewControl: false,
-          fullscreenControl: false,
-          mapId: 'cultural-discovery-map'
+          fullscreenControl: false
         });
 
         setMap(mapInstance);
-
-        // Clear existing markers and info windows
-        const newMarkers = new Map();
-        const newInfoWindows = new Map();
 
         // Add markers for each location
         locations.forEach((location) => {
@@ -77,30 +77,20 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
           
           if (isNaN(lat) || isNaN(lng)) return;
 
-          // Create a colored marker element
-          const markerElement = document.createElement('div');
-          markerElement.className = 'map-marker';
-          markerElement.style.width = '24px';
-          markerElement.style.height = '24px';
-          markerElement.style.borderRadius = '50%';
-          markerElement.style.border = '3px solid white';
-          markerElement.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-          markerElement.style.cursor = 'pointer';
-          markerElement.style.backgroundColor = categoryColors[location.category as keyof typeof categoryColors] || categoryColors.default;
-
-          const marker = new AdvancedMarkerElement({
-            map: mapInstance,
+          const marker = new google.maps.Marker({
             position: { lat, lng },
-            content: markerElement,
-            title: location.name
+            map: mapInstance,
+            title: location.name,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 12,
+              fillColor: categoryColors[location.category as keyof typeof categoryColors] || categoryColors.default,
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3
+            }
           });
 
-          // Add click handler
-          markerElement.addEventListener('click', () => {
-            onLocationClick?.(location);
-          });
-
-          // Create info window
           const infoWindow = new google.maps.InfoWindow({
             content: `
               <div style="max-width: 250px;">
@@ -111,36 +101,32 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
             `
           });
 
-          // Show info window on marker hover
-          markerElement.addEventListener('mouseenter', () => {
+          marker.addListener('click', () => {
+            onLocationClick?.(location);
+          });
+
+          marker.addListener('mouseover', () => {
             infoWindow.open(mapInstance, marker);
           });
 
-          markerElement.addEventListener('mouseleave', () => {
+          marker.addListener('mouseout', () => {
             infoWindow.close();
           });
-
-          newMarkers.set(location.id, marker);
-          newInfoWindows.set(location.id, infoWindow);
         });
 
-        setMarkers(newMarkers);
-        setInfoWindows(newInfoWindows);
-
         // Add center marker
-        const centerMarkerElement = document.createElement('div');
-        centerMarkerElement.style.width = '16px';
-        centerMarkerElement.style.height = '16px';
-        centerMarkerElement.style.borderRadius = '50%';
-        centerMarkerElement.style.backgroundColor = '#1f2937';
-        centerMarkerElement.style.border = '3px solid white';
-        centerMarkerElement.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-
-        new AdvancedMarkerElement({
-          map: mapInstance,
+        new google.maps.Marker({
           position: { lat: center.latitude, lng: center.longitude },
-          content: centerMarkerElement,
-          title: 'Search Center'
+          map: mapInstance,
+          title: 'Search Center',
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#1f2937',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+          }
         });
 
         setIsLoading(false);
@@ -154,28 +140,25 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
     initMap();
   }, [locations, center, onLocationClick]);
 
+  // Update map center when it changes
+  useEffect(() => {
+    if (map && center) {
+      map.setCenter({ lat: center.latitude, lng: center.longitude });
+    }
+  }, [map, center]);
+
   // Handle focused location changes
   useEffect(() => {
-    if (map && focusedLocation && markers.has && markers.has(focusedLocation.id) && infoWindows.has && infoWindows.has(focusedLocation.id)) {
+    if (map && focusedLocation) {
       const lat = parseFloat(focusedLocation.latitude);
       const lng = parseFloat(focusedLocation.longitude);
       
       if (!isNaN(lat) && !isNaN(lng)) {
-        // Center map on focused location
         map.setCenter({ lat, lng });
         map.setZoom(15);
-        
-        // Show info window for focused location
-        const infoWindow = infoWindows.get(focusedLocation.id);
-        const marker = markers.get(focusedLocation.id);
-        if (infoWindow && marker) {
-          // Close all other info windows first
-          infoWindows.forEach((iw: any) => iw.close());
-          infoWindow.open(map, marker);
-        }
       }
     }
-  }, [focusedLocation, map, markers, infoWindows]);
+  }, [focusedLocation, map]);
 
   if (error) {
     return (

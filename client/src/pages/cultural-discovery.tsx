@@ -278,6 +278,12 @@ export default function CulturalDiscovery() {
       longitude: parseFloat(location.longitude)
     });
     setFocusedLocation(location);
+    
+    // Switch to map view tab
+    const mapTab = document.querySelector('[data-value="map-view"]') as HTMLElement;
+    if (mapTab) {
+      mapTab.click();
+    }
   };
 
   const showAllCurrentResults = () => {
