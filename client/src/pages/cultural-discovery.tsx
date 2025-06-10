@@ -67,6 +67,7 @@ export default function CulturalDiscovery() {
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapMode, setMapMode] = useState<'current' | 'favorites'>('current');
   const [focusedLocation, setFocusedLocation] = useState<DiscoveryLocation | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('current-results');
 
   // Get user's current location
   useEffect(() => {
@@ -280,10 +281,7 @@ export default function CulturalDiscovery() {
     setFocusedLocation(location);
     
     // Switch to map view tab
-    const mapTab = document.querySelector('[data-value="map-view"]') as HTMLElement;
-    if (mapTab) {
-      mapTab.click();
-    }
+    setActiveTab('map-view');
   };
 
   const showAllCurrentResults = () => {
@@ -375,7 +373,7 @@ export default function CulturalDiscovery() {
 
 
       {/* Tabs for different views */}
-      <Tabs defaultValue="current-results" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="current-results">Current Results</TabsTrigger>
           <TabsTrigger value="favorites">Favorites</TabsTrigger>
