@@ -361,7 +361,7 @@ Provide only the title, no additional text.`;
               continue;
             }
           } else {
-            fileBuffer = fileResult.value[0];
+            fileBuffer = fileResult.value as any;
           }
           
           if (file.mimeType.startsWith("image/")) {
@@ -637,7 +637,7 @@ Provide only the title, no additional text.`;
           return res.status(404).json({ message: "Original file not found" });
         }
       } else {
-        originalFileBuffer = originalFileResult.value[0];
+        originalFileBuffer = originalFileResult.value as any;
       }
 
       // Get new file
@@ -651,7 +651,7 @@ Provide only the title, no additional text.`;
           return res.status(404).json({ message: "New file not found" });
         }
       } else {
-        newFileBuffer = newFileResult.value[0];
+        newFileBuffer = newFileResult.value as any;
       }
 
       // Build conversation context
