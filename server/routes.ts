@@ -480,6 +480,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Compare files endpoint
+  app.post("/api/compare-files", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { sessionId, originalFileId, newFileId } = req.body;
+
+      // Check conversation limit
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const isAcademic = user.email?.endsWith('.ac.uk') || user.email?.endsWith('.edu');
+      const limit = isAcademic ? 50 : (user.subscriptionPlan === 'premium' ? 50 : user.subscriptionPlan === 'standard' ? 30 : 10);
+      
+      if (user.conversationsThisMonth >= limit) {
+        return res.status(403).json({ 
+          message: "Monthly conversation limit reached",
+          limit,
+          used: user.conversationsThisMonth
+        });
+      }
+
+      // Get both files
+      const originalFile = await storage.getFile(originalFileId);
+      const newFile = await storage.getFile(newFileId);
+
+      if (!originalFile || !newFile) {
+        return res.status(404).json({ message: "Files not found" });
+      }
+
+      // Get existing conversation
+      const conversation = await storage.getConversationBySession(sessionId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      // Get conversation history for context
+      const existingMessages = await storage.getMessagesByConversation(conversation.id);
+      
+      // Prepare files for AI analysis
+      const originalFilePath = path.join(__dirname, '..', 'uploads', originalFile.filename);
+      const newFilePath = path.join(__dirname, '..', 'uploads', newFile.filename);
+
+      const originalFileBuffer = fs.readFileSync(originalFilePath);
+      const newFileBuffer = fs.readFileSync(newFilePath);
+
+      // Build conversation context
+      const conversationContext = existingMessages
+        .map(msg => `${msg.role === 'user' ? 'User' : 'AI'}: ${msg.content}`)
+        .join('\n\n');
+
+      // Create comparison prompt
+      const comparisonPrompt = `You are analyzing an improved version of a creative work based on previous feedback. 
+
+ORIGINAL CONVERSATION CONTEXT:
+${conversationContext}
+
+TASK: Compare the original file (${originalFile.originalName}) with the new improved version (${newFile.originalName}) and provide detailed feedback.
+
+Please analyze:
+1. **Improvements Made**: What specific changes were implemented based on the previous feedback?
+2. **Progress Assessment**: How well do the changes address the original suggestions?
+3. **Technical Quality**: Are there improvements in technical execution, composition, or craft?
+4. **Creative Development**: How has the creative vision evolved or been refined?
+5. **Further Recommendations**: What additional improvements could be made?
+
+Format your response with clear sections and be specific about what you observe in both versions. Acknowledge the effort put into the improvements and provide constructive guidance for continued development.`;
+
+      // Prepare content for Gemini
+      const content = [
+        { text: comparisonPrompt },
+        {
+          inlineData: {
+            mimeType: originalFile.mimeType,
+            data: originalFileBuffer.toString('base64')
+          }
+        },
+        { text: "ORIGINAL FILE ABOVE ↑\n\nIMPROVED VERSION BELOW ↓" },
+        {
+          inlineData: {
+            mimeType: newFile.mimeType,
+            data: newFileBuffer.toString('base64')
+          }
+        }
+      ];
+
+      const result = await model.generateContent({ contents: [{ parts: content }] });
+      const aiResponse = result.response.text();
+
+      // Save user message about comparison
+      await storage.createMessage({
+        conversationId: conversation.id,
+        role: 'user',
+        content: `Uploaded improved version of ${originalFile.originalName} for comparison.`
+      });
+
+      // Save AI response
+      await storage.createMessage({
+        conversationId: conversation.id,
+        role: 'ai',
+        content: aiResponse
+      });
+
+      // Increment conversation count
+      await storage.incrementUserConversations(userId);
+
+      res.json({ 
+        success: true,
+        message: "File comparison completed"
+      });
+    } catch (error) {
+      console.error("File comparison error:", error);
+      res.status(500).json({ message: "Failed to compare files" });
+    }
+  });
+
   // Create Stripe checkout session for subscription
   app.post("/api/create-subscription", isAuthenticated, async (req: any, res) => {
     try {
