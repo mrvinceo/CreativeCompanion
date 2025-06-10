@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MapPin, Heart, Search, Loader2, Star, Camera, Music, Palette, BookOpen, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { GoogleMap } from "@/components/google-map";
 
 interface DiscoveryLocation {
   id: number;
@@ -320,70 +321,7 @@ export default function CulturalDiscovery() {
         </CardContent>
       </Card>
 
-      {/* Discovery Results */}
-      {discoveryResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Discovery</CardTitle>
-            <CardDescription>
-              {discoveryResults.length} locations found {currentSearchCenter?.searchQuery ? `for "${currentSearchCenter.searchQuery}"` : 'near your location'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {discoveryResults.map((location) => (
-                <Card 
-                  key={location.id} 
-                  className="h-fit cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleLocationClick(location)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg leading-tight">
-                          {location.name}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {categoryIcons[location.category as keyof typeof categoryIcons] || categoryIcons.default}
-                            <span className="ml-1 capitalize">{location.category.replace('_', ' ')}</span>
-                          </Badge>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(location.id);
-                        }}
-                        className="text-muted-foreground hover:text-red-500"
-                      >
-                        <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-3">
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {location.description}
-                    </p>
-                    <div className="text-xs text-muted-foreground">
-                      <MapPin className="w-3 h-3 inline mr-1" />
-                      {location.address}
-                    </div>
-                    <div className="text-xs">
-                      <strong>Cultural Significance:</strong>
-                      <p className="mt-1 text-muted-foreground">
-                        {location.culturalSignificance}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Tabs for different views */}
       <Tabs defaultValue="current-results" className="space-y-4">
@@ -543,78 +481,71 @@ export default function CulturalDiscovery() {
             <CardHeader>
               <CardTitle>Map View</CardTitle>
               <CardDescription>
-                {discoveryResults.length > 0 
+                {discoveryResults.length > 0 && currentSearchCenter
                   ? `Showing ${discoveryResults.length} locations on the map`
                   : "Search for locations to see them on the map"
                 }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {discoveryResults.length > 0 || currentSearchCenter ? (
+              {discoveryResults.length > 0 && currentSearchCenter ? (
                 <div className="space-y-4">
-                  {/* Simple map placeholder with location info */}
-                  <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-8 min-h-[400px] flex flex-col items-center justify-center">
-                    <MapPin className="w-16 h-16 mb-4 text-primary" />
-                    <h3 className="text-lg font-semibold mb-2">Map View</h3>
-                    {currentSearchCenter && (
-                      <div className="text-center text-muted-foreground mb-4">
-                        <p className="mb-1">
-                          {currentSearchCenter.searchQuery 
-                            ? `Search area: ${currentSearchCenter.searchQuery}`
-                            : `Current location: ${currentSearchCenter.latitude.toFixed(4)}, ${currentSearchCenter.longitude.toFixed(4)}`
-                          }
-                        </p>
-                        <p className="text-sm">Found {discoveryResults.length} cultural points of interest</p>
-                      </div>
-                    )}
-                    <div className="text-sm text-muted-foreground text-center max-w-md">
-                      <p className="mb-2">Interactive map functionality would be implemented here with:</p>
-                      <ul className="text-left space-y-1">
-                        <li>• Pin markers for each discovered location</li>
-                        <li>• Click to view location details</li>
-                        <li>• Different icons for different categories</li>
-                        <li>• Search center marker</li>
-                      </ul>
+                  {/* Google Map */}
+                  <GoogleMap
+                    locations={discoveryResults}
+                    center={currentSearchCenter}
+                    onLocationClick={handleLocationClick}
+                  />
+                  
+                  {/* Location list for map legend */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Locations on Map</h4>
+                    <div className="grid gap-2 max-h-64 overflow-y-auto">
+                      {discoveryResults.map((location, index) => (
+                        <div 
+                          key={location.id}
+                          className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                          onClick={() => handleLocationClick(location)}
+                        >
+                          <div 
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white"
+                            style={{ 
+                              backgroundColor: 
+                                location.category === 'museum' ? '#8B5CF6' :
+                                location.category === 'gallery' ? '#06B6D4' :
+                                location.category === 'historic_site' ? '#F59E0B' :
+                                location.category === 'performance_venue' ? '#EF4444' :
+                                location.category === 'artist_studio' ? '#10B981' :
+                                location.category === 'library' ? '#3B82F6' :
+                                location.category === 'creative_district' ? '#F97316' :
+                                location.category === 'community_space' ? '#84CC16' :
+                                '#6B7280'
+                            }}
+                          >
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{location.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{location.address}</p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {categoryIcons[location.category as keyof typeof categoryIcons] || categoryIcons.default}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(location.id);
+                            }}
+                            className="text-muted-foreground hover:text-red-500"
+                          >
+                            <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  
-                  {/* Location list for map */}
-                  {discoveryResults.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">Locations on Map</h4>
-                      <div className="grid gap-2 max-h-64 overflow-y-auto">
-                        {discoveryResults.map((location, index) => (
-                          <div 
-                            key={location.id}
-                            className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                            onClick={() => handleLocationClick(location)}
-                          >
-                            <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
-                              {index + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{location.name}</p>
-                              <p className="text-xs text-muted-foreground truncate">{location.address}</p>
-                            </div>
-                            <Badge variant="secondary" className="text-xs">
-                              {categoryIcons[location.category as keyof typeof categoryIcons] || categoryIcons.default}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavorite(location.id);
-                              }}
-                              className="text-muted-foreground hover:text-red-500"
-                            >
-                              <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center p-8 text-muted-foreground">
@@ -637,11 +568,11 @@ export default function CulturalDiscovery() {
                   {categoryIcons[selectedLocation.category as keyof typeof categoryIcons] || categoryIcons.default}
                   {selectedLocation.name}
                 </DialogTitle>
-                <div className="mt-2">
+                <DialogDescription>
                   <Badge variant="secondary" className="text-xs">
                     <span className="capitalize">{selectedLocation.category.replace('_', ' ')}</span>
                   </Badge>
-                </div>
+                </DialogDescription>
               </DialogHeader>
               
               <div className="space-y-4">
