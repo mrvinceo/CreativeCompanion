@@ -284,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const systemPrompt = MEDIA_SYSTEM_PROMPTS[mediaType as keyof typeof MEDIA_SYSTEM_PROMPTS] || MEDIA_SYSTEM_PROMPTS.photography;
       
-      const parts = [
+      const parts: any[] = [
         {
           text: `${systemPrompt}\n\nUser Context: ${contextPrompt}\n\nPlease analyze the uploaded files and provide detailed creative feedback based on your expertise in ${mediaType}.`
         }
@@ -321,6 +321,12 @@ Examples:
 - "Landscape with morning mist"
 
 Provide only the title, no additional text.`;
+
+            // Validate image data before sending to API
+            if (!fileBuffer || fileBuffer.length === 0) {
+              console.warn(`Empty file buffer for ${file.filename}`);
+              continue;
+            }
 
             const titleResult = await model.generateContent([
               { text: titlePrompt },
@@ -365,12 +371,20 @@ Provide only the title, no additional text.`;
           }
           
           if (file.mimeType.startsWith("image/")) {
+            // Validate image data before sending to API
+            if (!fileBuffer || fileBuffer.length === 0) {
+              console.warn(`Empty file buffer for analysis ${file.filename}`);
+              continue;
+            }
+
+            console.log(`Adding image to analysis: ${file.filename}, size: ${fileBuffer.length} bytes, mime: ${file.mimeType}`);
+            
             parts.push({
               inlineData: {
                 mimeType: file.mimeType,
                 data: fileBuffer.toString("base64")
               }
-            } as any);
+            });
           }
           // For other file types, we'll include file info in text
           else {
