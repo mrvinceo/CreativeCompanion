@@ -593,18 +593,38 @@ Format your response with clear sections and be specific about what you observe 
       const result = await model.generateContent(parts);
       const aiResponse = result.response.text();
 
-      // Save user message about comparison
+      // Save user message about comparison with image metadata
+      const comparisonMessage = `**File Comparison Analysis**
+
+Original file: ${originalFile.originalName}
+Improved file: ${newFile.originalName}
+
+COMPARISON_IMAGES:${JSON.stringify({
+  originalFile: {
+    id: originalFile.id,
+    originalName: originalFile.originalName,
+    mimeType: originalFile.mimeType
+  },
+  newFile: {
+    id: newFile.id,
+    originalName: newFile.originalName,
+    mimeType: newFile.mimeType
+  }
+})}
+
+${aiResponse}`;
+
       await storage.createMessage({
         conversationId: conversation.id,
         role: 'user',
         content: `Uploaded improved version of ${originalFile.originalName} for comparison.`
       });
 
-      // Save AI response
+      // Save AI response with comparison images
       await storage.createMessage({
         conversationId: conversation.id,
         role: 'ai',
-        content: aiResponse
+        content: comparisonMessage
       });
 
       // Increment conversation count

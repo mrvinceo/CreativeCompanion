@@ -7,6 +7,7 @@ import { type ChatMessage, type Conversation, type UploadedFile } from '@/lib/ty
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { FileComparisonUpload } from './file-comparison-upload';
+import { ComparisonImages } from './comparison-images';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -133,6 +134,24 @@ export function ChatInterface({
     return messageDate.toLocaleDateString();
   };
 
+  const parseComparisonMessage = (content: string) => {
+    const comparisonMatch = content.match(/COMPARISON_IMAGES:({.*?})/);
+    if (comparisonMatch) {
+      try {
+        const comparisonData = JSON.parse(comparisonMatch[1]);
+        const cleanContent = content.replace(/COMPARISON_IMAGES:{.*?}\n\n/, '');
+        return {
+          hasComparison: true,
+          comparisonData,
+          cleanContent
+        };
+      } catch (e) {
+        return { hasComparison: false, cleanContent: content };
+      }
+    }
+    return { hasComparison: false, cleanContent: content };
+  };
+
   return (
     <Card className="flex-1 flex flex-col">
       {/* Chat Header */}
@@ -170,30 +189,43 @@ export function ChatInterface({
                     ? 'bg-primary text-white max-w-xs lg:max-w-md' 
                     : 'bg-slate-50'
                 }`}>
-                  <div className={`prose prose-sm max-w-none ${
-                    message.role === 'user' ? 'prose-invert' : ''
-                  }`}>
-                    {message.role === 'ai' ? (
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          p: ({ children }) => <p className="whitespace-pre-wrap">{children}</p>,
-                          h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
-                          ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1">{children}</li>,
-                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                          em: ({ children }) => <em className="italic">{children}</em>,
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    ) : (
+                  {message.role === 'ai' ? (
+                    (() => {
+                      const { hasComparison, comparisonData, cleanContent } = parseComparisonMessage(message.content);
+                      return (
+                        <div>
+                          {hasComparison && (
+                            <ComparisonImages
+                              originalFile={comparisonData.originalFile}
+                              newFile={comparisonData.newFile}
+                            />
+                          )}
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                p: ({ children }) => <p className="whitespace-pre-wrap">{children}</p>,
+                                h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+                                ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                em: ({ children }) => <em className="italic">{children}</em>,
+                              }}
+                            >
+                              {cleanContent}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="prose prose-sm max-w-none prose-invert">
                       <p className="whitespace-pre-wrap">{message.content}</p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
                 
                 {message.role === 'ai' && (
