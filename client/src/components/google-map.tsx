@@ -18,6 +18,7 @@ interface GoogleMapProps {
   locations: DiscoveryLocation[];
   center: { latitude: number; longitude: number };
   onLocationClick?: (location: DiscoveryLocation) => void;
+  focusedLocation?: DiscoveryLocation | null;
 }
 
 const categoryColors = {
@@ -32,11 +33,13 @@ const categoryColors = {
   default: '#6B7280'
 };
 
-export function GoogleMap({ locations, center, onLocationClick }: GoogleMapProps) {
+export function GoogleMap({ locations, center, onLocationClick, focusedLocation }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [markers, setMarkers] = useState<Map<number, any>>(new Map());
+  const [infoWindows, setInfoWindows] = useState<Map<number, google.maps.InfoWindow>>(new Map());
 
   useEffect(() => {
     const initMap = async () => {

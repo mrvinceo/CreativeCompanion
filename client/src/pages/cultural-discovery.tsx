@@ -64,6 +64,9 @@ export default function CulturalDiscovery() {
   const [selectedLocation, setSelectedLocation] = useState<DiscoveryLocation | null>(null);
   const [mapViewOpen, setMapViewOpen] = useState(false);
   const [currentSearchCenter, setCurrentSearchCenter] = useState<{ latitude: number; longitude: number; searchQuery?: string } | null>(null);
+  const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [mapMode, setMapMode] = useState<'current' | 'favorites'>('current');
+  const [focusedLocation, setFocusedLocation] = useState<DiscoveryLocation | null>(null);
 
   // Get user's current location
   useEffect(() => {
@@ -117,11 +120,29 @@ export default function CulturalDiscovery() {
     },
     onSuccess: (data, variables) => {
       setDiscoveryResults(data.locations || []);
+      
+      // Set search center based on search type
+      let centerLat = variables.latitude || 0;
+      let centerLng = variables.longitude || 0;
+      
+      // If searching by location name and we have results, use the first result's coordinates
+      if (variables.searchQuery && data.locations && data.locations.length > 0) {
+        centerLat = parseFloat(data.locations[0].latitude);
+        centerLng = parseFloat(data.locations[0].longitude);
+      }
+      
       setCurrentSearchCenter({
-        latitude: variables.latitude || 0,
-        longitude: variables.longitude || 0,
+        latitude: centerLat,
+        longitude: centerLng,
         searchQuery: variables.searchQuery
       });
+      setMapCenter({
+        latitude: centerLat,
+        longitude: centerLng
+      });
+      setMapMode('current');
+      setFocusedLocation(null);
+      
       toast({
         title: "Locations Discovered",
         description: `Found ${data.locations?.length || 0} cultural points of interest`,
@@ -248,6 +269,30 @@ export default function CulturalDiscovery() {
       removeFromFavoritesMutation.mutate(locationId);
     } else {
       addToFavoritesMutation.mutate({ locationId });
+    }
+  };
+
+  const centerMapOnLocation = (location: DiscoveryLocation) => {
+    setMapCenter({
+      latitude: parseFloat(location.latitude),
+      longitude: parseFloat(location.longitude)
+    });
+    setFocusedLocation(location);
+  };
+
+  const showAllCurrentResults = () => {
+    if (currentSearchCenter) {
+      setMapCenter(currentSearchCenter);
+      setMapMode('current');
+      setFocusedLocation(null);
+    }
+  };
+
+  const showAllFavorites = () => {
+    if (userLocation) {
+      setMapCenter(userLocation);
+      setMapMode('favorites');
+      setFocusedLocation(null);
     }
   };
 
