@@ -110,7 +110,9 @@ export default function CulturalDiscovery() {
   // Discover new locations mutation
   const discoverLocationsMutation = useMutation({
     mutationFn: async (params: { latitude?: number; longitude?: number; searchQuery?: string }) => {
-      return await apiRequest("POST", "/api/discover-locations", params);
+      const response = await apiRequest("POST", "/api/discover-locations", params);
+      const data = await response.json();
+      return data;
     },
     onSuccess: (data, variables) => {
       setDiscoveryResults(data.locations || []);
@@ -480,7 +482,11 @@ export default function CulturalDiscovery() {
                   if (!location) return null;
                   
                   return (
-                    <Card key={favorite.id} className="h-fit">
+                    <Card 
+                      key={favorite.id} 
+                      className="h-fit cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => handleLocationClick(location)}
+                    >
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -497,7 +503,10 @@ export default function CulturalDiscovery() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => toggleFavorite(location.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(location.id);
+                            }}
                             className="text-red-500"
                           >
                             <Heart className="w-4 h-4 fill-current" />
@@ -628,11 +637,11 @@ export default function CulturalDiscovery() {
                   {categoryIcons[selectedLocation.category as keyof typeof categoryIcons] || categoryIcons.default}
                   {selectedLocation.name}
                 </DialogTitle>
-                <DialogDescription>
+                <div className="mt-2">
                   <Badge variant="secondary" className="text-xs">
                     <span className="capitalize">{selectedLocation.category.replace('_', ' ')}</span>
                   </Badge>
-                </DialogDescription>
+                </div>
               </DialogHeader>
               
               <div className="space-y-4">

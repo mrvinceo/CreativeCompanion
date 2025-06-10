@@ -959,38 +959,67 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
       // Parse AI response to extract locations
       let discoveredLocations;
       try {
-        // Extract JSON from AI response
-        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+        console.log("AI Response:", aiResponse);
+        
+        // Try multiple JSON extraction methods
+        let jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+          // Try extracting JSON between ```json and ``` blocks
+          jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            jsonMatch[0] = jsonMatch[1];
+          }
+        }
+        if (!jsonMatch) {
+          // Try finding JSON object array pattern
+          jsonMatch = aiResponse.match(/(\[[\s\S]*?\}[\s\S]*?\])/);
+        }
+        
         if (jsonMatch) {
           discoveredLocations = JSON.parse(jsonMatch[0]);
+          console.log("Parsed locations:", discoveredLocations.length);
         } else {
+          console.error("No JSON found in AI response");
           throw new Error("No valid JSON found in AI response");
         }
       } catch (parseError) {
         console.error("Failed to parse AI response:", parseError);
+        console.error("Raw AI response:", aiResponse.substring(0, 500));
         return res.status(500).json({ message: "Failed to parse discovery results" });
       }
 
       // Save discovered locations to database
       const savedLocations = [];
+      if (!discoveredLocations || !Array.isArray(discoveredLocations)) {
+        console.error("discoveredLocations is not an array:", discoveredLocations);
+        return res.status(500).json({ message: "Invalid locations data from AI" });
+      }
+      
+      console.log("Processing", discoveredLocations.length, "locations");
       for (const location of discoveredLocations) {
         try {
+          if (!location.name || !location.description) {
+            console.error("Invalid location data:", location);
+            continue;
+          }
+          
           const locationData = {
             userId,
             name: location.name,
             description: location.description,
             latitude: location.latitude || "0",
             longitude: location.longitude || "0",
-            address: location.address,
-            category: location.category,
-            culturalSignificance: location.culturalSignificance,
+            address: location.address || "Address not provided",
+            category: location.category || "cultural_site",
+            culturalSignificance: location.culturalSignificance || location.significance || "Cultural significance not specified",
             aiGenerated: true
           };
           
           const savedLocation = await storage.createDiscoveryLocation(locationData);
           savedLocations.push(savedLocation);
+          console.log("Saved location:", savedLocation.name);
         } catch (error) {
-          console.error("Failed to save location:", error);
+          console.error("Failed to save location:", location.name, error);
         }
       }
 
