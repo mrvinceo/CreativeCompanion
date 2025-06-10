@@ -491,6 +491,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { sessionId, originalFileId, newFileId } = req.body;
 
+      console.log('File comparison request:', { userId, sessionId, originalFileId, newFileId });
+
       // Check conversation limit
       const user = await storage.getUser(userId);
       if (!user) {
@@ -500,7 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAcademic = user.email?.endsWith('.ac.uk') || user.email?.endsWith('.edu');
       const limit = isAcademic ? 50 : (user.subscriptionPlan === 'premium' ? 50 : user.subscriptionPlan === 'standard' ? 30 : 10);
       
-      if (user.conversationsThisMonth >= limit) {
+      if ((user.conversationsThisMonth || 0) >= limit) {
         return res.status(403).json({ 
           message: "Monthly conversation limit reached",
           limit,
@@ -509,8 +511,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get both files
-      const originalFile = await storage.getFile(originalFileId);
-      const newFile = await storage.getFile(newFileId);
+      const originalFile = await storage.getFile(parseInt(originalFileId));
+      const newFile = await storage.getFile(parseInt(newFileId));
+
+      console.log('Files found:', { originalFile: !!originalFile, newFile: !!newFile });
 
       if (!originalFile || !newFile) {
         return res.status(404).json({ message: "Files not found" });
@@ -528,6 +532,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Prepare files for AI analysis
       const originalFilePath = path.join(process.cwd(), 'uploads', originalFile.filename);
       const newFilePath = path.join(process.cwd(), 'uploads', newFile.filename);
+
+      console.log('File paths:', { originalFilePath, newFilePath });
+
+      // Check if files exist
+      if (!fsSync.existsSync(originalFilePath) || !fsSync.existsSync(newFilePath)) {
+        return res.status(404).json({ message: "File not found on disk" });
+      }
 
       const originalFileBuffer = fsSync.readFileSync(originalFilePath);
       const newFileBuffer = fsSync.readFileSync(newFilePath);
@@ -605,7 +616,10 @@ Format your response with clear sections and be specific about what you observe 
       });
     } catch (error) {
       console.error("File comparison error:", error);
-      res.status(500).json({ message: "Failed to compare files" });
+      res.status(500).json({ 
+        message: "Failed to compare files", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 
