@@ -497,17 +497,31 @@ export default function CulturalDiscovery() {
                               </Badge>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(location.id);
-                            }}
-                            className="text-red-500"
-                          >
-                            <Heart className="w-4 h-4 fill-current" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                centerMapOnLocation(location);
+                              }}
+                              className="text-muted-foreground hover:text-blue-500"
+                              title="Center map on this location"
+                            >
+                              <MapPin className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(location.id);
+                              }}
+                              className="text-red-500"
+                            >
+                              <Heart className="w-4 h-4 fill-current" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0 space-y-3">

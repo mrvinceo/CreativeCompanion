@@ -38,8 +38,8 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [markers, setMarkers] = useState<Map<number, any>>(new Map());
-  const [infoWindows, setInfoWindows] = useState<Map<number, google.maps.InfoWindow>>(new Map());
+  const [markers, setMarkers] = useState(new Map());
+  const [infoWindows, setInfoWindows] = useState(new Map());
 
   useEffect(() => {
     const initMap = async () => {
@@ -156,7 +156,7 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
 
   // Handle focused location changes
   useEffect(() => {
-    if (map && focusedLocation && markers.has(focusedLocation.id) && infoWindows.has(focusedLocation.id)) {
+    if (map && focusedLocation && markers.has && markers.has(focusedLocation.id) && infoWindows.has && infoWindows.has(focusedLocation.id)) {
       const lat = parseFloat(focusedLocation.latitude);
       const lng = parseFloat(focusedLocation.longitude);
       
@@ -170,7 +170,7 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
         const marker = markers.get(focusedLocation.id);
         if (infoWindow && marker) {
           // Close all other info windows first
-          infoWindows.forEach(iw => iw.close());
+          infoWindows.forEach((iw: any) => iw.close());
           infoWindow.open(map, marker);
         }
       }
