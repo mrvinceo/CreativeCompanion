@@ -200,6 +200,12 @@ export default function Home() {
                     {user.firstName || user.email || 'User'}
                   </span>
                 </div>
+                <ProfileDialog>
+                  <Button variant="ghost" size="sm" className="px-2 sm:px-3">
+                    <User className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Profile</span>
+                  </Button>
+                </ProfileDialog>
                 <Button 
                   variant="ghost" 
                   size="sm"
