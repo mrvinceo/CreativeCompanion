@@ -280,6 +280,14 @@ export default function CulturalDiscovery() {
     });
     setFocusedLocation(location);
     
+    // Determine if this location is from favorites or current results
+    const isFromFavorites = favoritesData?.favorites?.some((fav: any) => fav.locationId === location.id);
+    if (isFromFavorites) {
+      setMapMode('favorites');
+    } else {
+      setMapMode('current');
+    }
+    
     // Switch to map view tab
     setActiveTab('map-view');
   };
@@ -565,7 +573,9 @@ export default function CulturalDiscovery() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {discoveryResults.length > 0 && currentSearchCenter ? (
+              {(discoveryResults.length > 0 && currentSearchCenter) || 
+               (favoritesData?.favorites && favoritesData.favorites.length > 0) || 
+               focusedLocation ? (
                 <div className="space-y-4">
                   {/* Map Controls */}
                   <div className="flex gap-2 mb-4">
@@ -592,7 +602,7 @@ export default function CulturalDiscovery() {
                     locations={mapMode === 'current' ? discoveryResults : (favoritesData?.favorites?.map((fav: FavoriteLocation) => {
                       return locationsData?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
                     }).filter(Boolean) || [])}
-                    center={mapCenter || currentSearchCenter}
+                    center={mapCenter || currentSearchCenter || userLocation || { latitude: 53.683, longitude: -1.496 }}
                     onLocationClick={handleLocationClick}
                     focusedLocation={focusedLocation}
                   />
