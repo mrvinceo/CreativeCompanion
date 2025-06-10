@@ -2,6 +2,7 @@ export interface UploadedFile {
   id: number;
   filename: string;
   originalName: string;
+  title?: string; // AI-generated descriptive title
   mimeType: string;
   size: number;
   sessionId: string;

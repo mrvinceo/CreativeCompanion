@@ -36,6 +36,7 @@ export const files = pgTable("files", {
   id: serial("id").primaryKey(),
   filename: text("filename").notNull(),
   originalName: text("original_name").notNull(),
+  title: text("title"), // AI-generated descriptive title
   mimeType: text("mime_type").notNull(),
   size: integer("size").notNull(),
   sessionId: text("session_id").notNull(),

@@ -29,6 +29,7 @@ export interface IStorage {
   getFilesByUser(userId: string): Promise<File[]>;
   getFile(id: number): Promise<File | undefined>;
   deleteFile(id: number): Promise<void>;
+  updateFileTitle(fileId: number, title: string): Promise<File>;
 
   // Conversation operations
   createConversation(conversation: InsertConversation): Promise<Conversation>;
@@ -155,6 +156,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFile(id: number): Promise<void> {
     await db.delete(files).where(eq(files.id, id));
+  }
+
+  async updateFileTitle(fileId: number, title: string): Promise<File> {
+    const [file] = await db
+      .update(files)
+      .set({ title })
+      .where(eq(files.id, fileId))
+      .returning();
+    return file;
   }
 
   // Conversation operations

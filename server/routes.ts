@@ -265,8 +265,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       ];
 
-      // Add file data to the request
+      // Generate descriptive titles for uploaded files first
       for (const file of files) {
+        if (file.mimeType.startsWith('image/') && !file.title) {
+          try {
+            const filePath = path.join("uploads", file.filename);
+            const fileBuffer = await fs.readFile(filePath);
+            
+            const titlePrompt = `Analyze this image and create a short, descriptive title (maximum 5-8 words) that captures the main subject and essence of the work. Focus on what makes this image unique or interesting. Be specific but concise.
+
+Examples:
+- "Coffee cup with dramatic shadows"
+- "Portrait with soft natural lighting" 
+- "Urban street scene at sunset"
+- "Abstract geometric composition"
+- "Landscape with morning mist"
+
+Provide only the title, no additional text.`;
+
+            const titleResult = await model.generateContent([
+              { text: titlePrompt },
+              {
+                inlineData: {
+                  mimeType: file.mimeType,
+                  data: fileBuffer.toString('base64')
+                }
+              }
+            ]);
+            
+            const generatedTitle = titleResult.response.text().trim();
+            await storage.updateFileTitle(file.id, generatedTitle);
+          } catch (error) {
+            console.error(`Failed to generate title for file ${file.id}:`, error);
+            // Continue without title if generation fails
+          }
+        }
+      }
+
+      // Refresh file records to include generated titles
+      const updatedFiles = await storage.getFilesBySession(sessionId);
+
+      // Add file data to the request
+      for (const file of updatedFiles) {
         try {
           const filePath = path.join("uploads", file.filename);
           const fileBuffer = await fs.readFile(filePath);
