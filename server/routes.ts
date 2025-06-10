@@ -145,14 +145,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "File not found" });
       }
 
-      // Get file from Object Storage
-      const fileResult = await objectStorage.downloadAsBytes(file.filename);
+      // Try Object Storage first, fallback to local filesystem for existing files
+      let fileBuffer: Buffer;
       
-      if (fileResult.error) {
-        return res.status(404).json({ message: "File content not found in storage" });
+      try {
+        const fileResult = await objectStorage.downloadAsBytes(file.filename);
+        if (fileResult.error) {
+          // Fallback to local filesystem for existing files
+          const fs = await import('fs/promises');
+          const filePath = path.join(process.cwd(), 'uploads', file.filename);
+          try {
+            fileBuffer = await fs.readFile(filePath);
+          } catch (localError) {
+            console.error(`File not found in storage or locally: ${file.filename}`, localError);
+            return res.status(404).json({ message: "File content not found" });
+          }
+        } else {
+          // Object Storage returns a Result with value as Buffer
+          fileBuffer = fileResult.value as any;
+        }
+      } catch (error) {
+        console.error("File retrieval error:", error);
+        return res.status(500).json({ message: "Failed to retrieve file" });
       }
-      
-      const fileBuffer = fileResult.value;
       
       res.setHeader('Content-Type', file.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`);
@@ -279,13 +294,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const file of files) {
         if (file.mimeType.startsWith('image/') && !file.title) {
           try {
-            // Get file from Object Storage
+            // Try Object Storage first, fallback to local filesystem
+            let fileBuffer: Buffer;
             const fileResult = await objectStorage.downloadAsBytes(file.filename);
             if (fileResult.error) {
-              console.warn(`Could not download file ${file.filename} for title generation:`, fileResult.error);
-              continue;
+              // Fallback to local filesystem for existing files
+              const fs = await import('fs/promises');
+              const filePath = path.join(process.cwd(), 'uploads', file.filename);
+              try {
+                fileBuffer = await fs.readFile(filePath);
+              } catch (localError) {
+                console.warn(`Could not find file ${file.filename} in storage or locally:`, localError);
+                continue;
+              }
+            } else {
+              fileBuffer = fileResult.value as any;
             }
-            const fileBuffer = fileResult.value;
             
             const titlePrompt = `Analyze this image and create a short, descriptive title (maximum 5-8 words) that captures the main subject and essence of the work. Focus on what makes this image unique or interesting. Be specific but concise.
 
@@ -323,13 +347,22 @@ Provide only the title, no additional text.`;
       // Add file data to the request
       for (const file of updatedFiles) {
         try {
-          // Get file from Object Storage
+          // Try Object Storage first, fallback to local filesystem
+          let fileBuffer: Buffer;
           const fileResult = await objectStorage.downloadAsBytes(file.filename);
           if (fileResult.error) {
-            console.warn(`Could not download file ${file.filename} for analysis:`, fileResult.error);
-            continue;
+            // Fallback to local filesystem for existing files
+            const fs = await import('fs/promises');
+            const filePath = path.join(process.cwd(), 'uploads', file.filename);
+            try {
+              fileBuffer = await fs.readFile(filePath);
+            } catch (localError) {
+              console.warn(`Could not find file ${file.filename} in storage or locally:`, localError);
+              continue;
+            }
+          } else {
+            fileBuffer = fileResult.value[0];
           }
-          const fileBuffer = fileResult.value;
           
           if (file.mimeType.startsWith("image/")) {
             parts.push({
@@ -589,16 +622,37 @@ Provide only the title, no additional text.`;
       // Get conversation history for context
       const existingMessages = await storage.getMessagesByConversation(conversation.id);
       
-      // Get files from Object Storage
-      const originalFileResult = await objectStorage.downloadAsBytes(originalFile.filename);
-      const newFileResult = await objectStorage.downloadAsBytes(newFile.filename);
+      // Get files from Object Storage with fallback to local filesystem
+      let originalFileBuffer: Buffer;
+      let newFileBuffer: Buffer;
 
-      if (originalFileResult.error || newFileResult.error) {
-        return res.status(404).json({ message: "File not found in storage" });
+      // Get original file
+      const originalFileResult = await objectStorage.downloadAsBytes(originalFile.filename);
+      if (originalFileResult.error) {
+        const fs = await import('fs/promises');
+        const originalFilePath = path.join(process.cwd(), 'uploads', originalFile.filename);
+        try {
+          originalFileBuffer = await fs.readFile(originalFilePath);
+        } catch (error) {
+          return res.status(404).json({ message: "Original file not found" });
+        }
+      } else {
+        originalFileBuffer = originalFileResult.value[0];
       }
 
-      const originalFileBuffer = originalFileResult.value;
-      const newFileBuffer = newFileResult.value;
+      // Get new file
+      const newFileResult = await objectStorage.downloadAsBytes(newFile.filename);
+      if (newFileResult.error) {
+        const fs = await import('fs/promises');
+        const newFilePath = path.join(process.cwd(), 'uploads', newFile.filename);
+        try {
+          newFileBuffer = await fs.readFile(newFilePath);
+        } catch (error) {
+          return res.status(404).json({ message: "New file not found" });
+        }
+      } else {
+        newFileBuffer = newFileResult.value[0];
+      }
 
       // Build conversation context
       const conversationContext = existingMessages
