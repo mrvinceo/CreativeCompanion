@@ -60,9 +60,9 @@ export default function CulturalDiscovery() {
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [discoveryResults, setDiscoveryResults] = useState<DiscoveryLocation[]>([]);
-  const [saveDiscoveryOpen, setSaveDiscoveryOpen] = useState(false);
-  const [discoveryName, setDiscoveryName] = useState("");
-  const [discoveryDescription, setDiscoveryDescription] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState<DiscoveryLocation | null>(null);
+  const [mapViewOpen, setMapViewOpen] = useState(false);
+  const [currentSearchCenter, setCurrentSearchCenter] = useState<{ latitude: number; longitude: number; searchQuery?: string } | null>(null);
 
   // Get user's current location
   useEffect(() => {
@@ -73,13 +73,24 @@ export default function CulturalDiscovery() {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
           });
+          console.log("Location obtained:", position.coords.latitude, position.coords.longitude);
         },
         (error) => {
           console.log("Location access denied or failed:", error);
+          toast({
+            title: "Location Access",
+            description: "Location access was denied. You can still search by city name.",
+            variant: "destructive",
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
         }
       );
     }
-  }, []);
+  }, [toast]);
 
   // Fetch discovered locations
   const { data: locationsData, isLoading: locationsLoading } = useQuery({
@@ -101,9 +112,13 @@ export default function CulturalDiscovery() {
     mutationFn: async (params: { latitude?: number; longitude?: number; searchQuery?: string }) => {
       return await apiRequest("POST", "/api/discover-locations", params);
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       setDiscoveryResults(data.locations || []);
-      queryClient.invalidateQueries({ queryKey: ["/api/discovered-locations"] });
+      setCurrentSearchCenter({
+        latitude: variables.latitude || 0,
+        longitude: variables.longitude || 0,
+        searchQuery: variables.searchQuery
+      });
       toast({
         title: "Locations Discovered",
         description: `Found ${data.locations?.length || 0} cultural points of interest`,
@@ -160,37 +175,6 @@ export default function CulturalDiscovery() {
     },
   });
 
-  // Save discovery session mutation
-  const saveDiscoveryMutation = useMutation({
-    mutationFn: async (params: {
-      name: string;
-      description: string;
-      centerLatitude: string;
-      centerLongitude: string;
-      locationIds: number[];
-      searchQuery: string;
-    }) => {
-      return await apiRequest("POST", "/api/save-discovery", params);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/saved-discoveries"] });
-      setSaveDiscoveryOpen(false);
-      setDiscoveryName("");
-      setDiscoveryDescription("");
-      toast({
-        title: "Discovery Saved",
-        description: "Your discovery session has been saved",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to Save",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleDiscoverNearby = () => {
     if (userLocation) {
       discoverLocationsMutation.mutate({
@@ -219,25 +203,9 @@ export default function CulturalDiscovery() {
     discoverLocationsMutation.mutate({ searchQuery });
   };
 
-  const handleSaveDiscovery = () => {
-    if (!discoveryName.trim()) {
-      toast({
-        title: "Name Required",
-        description: "Please enter a name for this discovery",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const locationIds = discoveryResults.map(loc => loc.id);
-    saveDiscoveryMutation.mutate({
-      name: discoveryName,
-      description: discoveryDescription,
-      centerLatitude: userLocation?.latitude.toString() || "0",
-      centerLongitude: userLocation?.longitude.toString() || "0",
-      locationIds,
-      searchQuery
-    });
+  const handleLocationClick = (location: DiscoveryLocation) => {
+    setSelectedLocation(location);
+    setMapViewOpen(true);
   };
 
   const isFavorite = (locationId: number) => {
@@ -325,69 +293,20 @@ export default function CulturalDiscovery() {
       {/* Discovery Results */}
       {discoveryResults.length > 0 && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Recent Discovery</CardTitle>
-              <CardDescription>
-                {discoveryResults.length} locations found
-              </CardDescription>
-            </div>
-            <Dialog open={saveDiscoveryOpen} onOpenChange={setSaveDiscoveryOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">Save Discovery</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Save Discovery Session</DialogTitle>
-                  <DialogDescription>
-                    Save this discovery session to revisit these locations later
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="discovery-name">Name</Label>
-                    <Input
-                      id="discovery-name"
-                      value={discoveryName}
-                      onChange={(e) => setDiscoveryName(e.target.value)}
-                      placeholder="e.g., Downtown Art District Tour"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="discovery-description">Description (optional)</Label>
-                    <Textarea
-                      id="discovery-description"
-                      value={discoveryDescription}
-                      onChange={(e) => setDiscoveryDescription(e.target.value)}
-                      placeholder="Notes about this discovery session..."
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleSaveDiscovery}
-                      disabled={saveDiscoveryMutation.isPending}
-                      className="flex-1"
-                    >
-                      {saveDiscoveryMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : null}
-                      Save Discovery
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setSaveDiscoveryOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+          <CardHeader>
+            <CardTitle>Recent Discovery</CardTitle>
+            <CardDescription>
+              {discoveryResults.length} locations found {currentSearchCenter?.searchQuery ? `for "${currentSearchCenter.searchQuery}"` : 'near your location'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {discoveryResults.map((location) => (
-                <Card key={location.id} className="h-fit">
+                <Card 
+                  key={location.id} 
+                  className="h-fit cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => handleLocationClick(location)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -404,7 +323,10 @@ export default function CulturalDiscovery() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleFavorite(location.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(location.id);
+                        }}
                         className="text-muted-foreground hover:text-red-500"
                       >
                         <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
@@ -434,11 +356,11 @@ export default function CulturalDiscovery() {
       )}
 
       {/* Tabs for different views */}
-      <Tabs defaultValue="all-locations" className="space-y-4">
+      <Tabs defaultValue="current-results" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="all-locations">All Locations</TabsTrigger>
+          <TabsTrigger value="current-results">Current Results</TabsTrigger>
           <TabsTrigger value="favorites">Favorites</TabsTrigger>
-          <TabsTrigger value="saved-discoveries">Saved Discoveries</TabsTrigger>
+          <TabsTrigger value="map-view">Map View</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all-locations">
