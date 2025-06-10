@@ -135,21 +135,35 @@ export function ChatInterface({
   };
 
   const parseComparisonMessage = (content: string) => {
-    const comparisonMatch = content.match(/COMPARISON_IMAGES:({.*?})/);
-    if (comparisonMatch) {
-      try {
-        const comparisonData = JSON.parse(comparisonMatch[1]);
-        const cleanContent = content.replace(/COMPARISON_IMAGES:{.*?}\n\n/, '');
-        return {
-          hasComparison: true,
-          comparisonData,
-          cleanContent
-        };
-      } catch (e) {
-        return { hasComparison: false, cleanContent: content };
-      }
+    const comparisonStart = content.indexOf('COMPARISON_IMAGES:');
+    if (comparisonStart === -1) {
+      return { hasComparison: false, cleanContent: content };
     }
-    return { hasComparison: false, cleanContent: content };
+    
+    // Find the end of the JSON by looking for the next double newline
+    const jsonStart = comparisonStart + 'COMPARISON_IMAGES:'.length;
+    const nextSection = content.indexOf('\n\n', jsonStart);
+    
+    if (nextSection === -1) {
+      return { hasComparison: false, cleanContent: content };
+    }
+    
+    try {
+      const jsonString = content.substring(jsonStart, nextSection);
+      const comparisonData = JSON.parse(jsonString);
+      
+      // Split content at the JSON section and take everything after
+      const cleanContent = content.substring(nextSection + 2);
+      
+      return {
+        hasComparison: true,
+        comparisonData,
+        cleanContent
+      };
+    } catch (e) {
+      console.error('Failed to parse comparison data:', e);
+      return { hasComparison: false, cleanContent: content };
+    }
   };
 
   return (
