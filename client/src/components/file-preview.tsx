@@ -50,9 +50,16 @@ export function FilePreview({ files }: FilePreviewProps) {
                 {getFileIcon(file.mimeType)}
               </div>
             )}
-            <p className="text-xs font-medium text-slate-900 text-center truncate w-full">
-              {file.originalName}
-            </p>
+            <div className="text-center w-full">
+              {file.title && (
+                <p className="text-xs font-medium text-slate-900 truncate w-full mb-1">
+                  {file.title}
+                </p>
+              )}
+              <p className="text-xs text-slate-500 truncate w-full">
+                {file.originalName}
+              </p>
+            </div>
             <p className="text-xs text-slate-500">
               {formatFileSize(file.size)}
             </p>

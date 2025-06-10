@@ -121,7 +121,12 @@ export function FileComparisonUpload({
                   <SelectItem key={file.id} value={file.id.toString()}>
                     <div className="flex items-center gap-2">
                       <FileImage className="w-4 h-4" />
-                      <span className="truncate">{file.originalName}</span>
+                      <div className="flex flex-col text-left">
+                        {file.title && (
+                          <span className="font-medium text-sm">{file.title}</span>
+                        )}
+                        <span className="text-xs text-slate-500 truncate">{file.originalName}</span>
+                      </div>
                     </div>
                   </SelectItem>
                 ))}

@@ -21,7 +21,7 @@ export function ComparisonImages({ originalFile, newFile }: ComparisonImagesProp
         <Card className="p-3">
           <div className="space-y-2">
             <div className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded">
-              Original: {originalFile.originalName}
+              Original: {originalFile.title || originalFile.originalName}
             </div>
             <div className="aspect-square bg-slate-50 rounded-lg overflow-hidden">
               <img
@@ -37,7 +37,7 @@ export function ComparisonImages({ originalFile, newFile }: ComparisonImagesProp
         <Card className="p-3">
           <div className="space-y-2">
             <div className="text-xs font-medium text-slate-600 bg-green-100 px-2 py-1 rounded">
-              Improved: {newFile.originalName}
+              Improved: {newFile.title || newFile.originalName}
             </div>
             <div className="aspect-square bg-slate-50 rounded-lg overflow-hidden">
               <img
