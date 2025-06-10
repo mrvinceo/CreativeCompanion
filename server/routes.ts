@@ -5,9 +5,14 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
+import fsSync from "fs";
+import { fileURLToPath } from 'url';
 import { insertFileSchema, insertConversationSchema, insertMessageSchema } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Stripe from "stripe";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -521,11 +526,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingMessages = await storage.getMessagesByConversation(conversation.id);
       
       // Prepare files for AI analysis
-      const originalFilePath = path.join(__dirname, '..', 'uploads', originalFile.filename);
-      const newFilePath = path.join(__dirname, '..', 'uploads', newFile.filename);
+      const originalFilePath = path.join(process.cwd(), 'uploads', originalFile.filename);
+      const newFilePath = path.join(process.cwd(), 'uploads', newFile.filename);
 
-      const originalFileBuffer = fs.readFileSync(originalFilePath);
-      const newFileBuffer = fs.readFileSync(newFilePath);
+      const originalFileBuffer = fsSync.readFileSync(originalFilePath);
+      const newFileBuffer = fsSync.readFileSync(newFilePath);
 
       // Build conversation context
       const conversationContext = existingMessages
@@ -549,8 +554,15 @@ Please analyze:
 
 Format your response with clear sections and be specific about what you observe in both versions. Acknowledge the effort put into the improvements and provide constructive guidance for continued development.`;
 
-      // Prepare content for Gemini
-      const content = [
+      // Initialize Gemini AI
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new Error("Google API key not provided");
+      }
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+      // Prepare content for Gemini with proper structure
+      const parts = [
         { text: comparisonPrompt },
         {
           inlineData: {
@@ -567,7 +579,7 @@ Format your response with clear sections and be specific about what you observe 
         }
       ];
 
-      const result = await model.generateContent({ contents: [{ parts: content }] });
+      const result = await model.generateContent(parts);
       const aiResponse = result.response.text();
 
       // Save user message about comparison
