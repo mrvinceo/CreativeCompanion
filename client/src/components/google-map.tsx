@@ -66,6 +66,10 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
 
         setMap(mapInstance);
 
+        // Clear existing markers and info windows
+        const newMarkers = new Map();
+        const newInfoWindows = new Map();
+
         // Add markers for each location
         locations.forEach((location) => {
           const lat = parseFloat(location.latitude);
@@ -115,7 +119,13 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
           markerElement.addEventListener('mouseleave', () => {
             infoWindow.close();
           });
+
+          newMarkers.set(location.id, marker);
+          newInfoWindows.set(location.id, infoWindow);
         });
+
+        setMarkers(newMarkers);
+        setInfoWindows(newInfoWindows);
 
         // Add center marker
         const centerMarkerElement = document.createElement('div');
@@ -143,6 +153,29 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
 
     initMap();
   }, [locations, center, onLocationClick]);
+
+  // Handle focused location changes
+  useEffect(() => {
+    if (map && focusedLocation && markers.has(focusedLocation.id) && infoWindows.has(focusedLocation.id)) {
+      const lat = parseFloat(focusedLocation.latitude);
+      const lng = parseFloat(focusedLocation.longitude);
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // Center map on focused location
+        map.setCenter({ lat, lng });
+        map.setZoom(15);
+        
+        // Show info window for focused location
+        const infoWindow = infoWindows.get(focusedLocation.id);
+        const marker = markers.get(focusedLocation.id);
+        if (infoWindow && marker) {
+          // Close all other info windows first
+          infoWindows.forEach(iw => iw.close());
+          infoWindow.open(map, marker);
+        }
+      }
+    }
+  }, [focusedLocation, map, markers, infoWindows]);
 
   if (error) {
     return (

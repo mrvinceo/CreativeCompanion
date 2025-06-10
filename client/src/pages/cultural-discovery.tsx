@@ -409,17 +409,31 @@ export default function CulturalDiscovery() {
                               </Badge>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(location.id);
-                            }}
-                            className="text-muted-foreground hover:text-red-500"
-                          >
-                            <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                centerMapOnLocation(location);
+                              }}
+                              className="text-muted-foreground hover:text-blue-500"
+                              title="Center map on this location"
+                            >
+                              <MapPin className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(location.id);
+                              }}
+                              className="text-muted-foreground hover:text-red-500"
+                            >
+                              <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0 space-y-3">
@@ -535,11 +549,34 @@ export default function CulturalDiscovery() {
             <CardContent>
               {discoveryResults.length > 0 && currentSearchCenter ? (
                 <div className="space-y-4">
+                  {/* Map Controls */}
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      variant={mapMode === 'current' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={showAllCurrentResults}
+                      disabled={!currentSearchCenter}
+                    >
+                      Show All Current Results
+                    </Button>
+                    <Button
+                      variant={mapMode === 'favorites' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={showAllFavorites}
+                      disabled={!userLocation}
+                    >
+                      Show All Favorites
+                    </Button>
+                  </div>
+
                   {/* Google Map */}
                   <GoogleMap
-                    locations={discoveryResults}
-                    center={currentSearchCenter}
+                    locations={mapMode === 'current' ? discoveryResults : (favoritesData?.favorites?.map((fav: FavoriteLocation) => {
+                      return locationsData?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
+                    }).filter(Boolean) || [])}
+                    center={mapCenter || currentSearchCenter}
                     onLocationClick={handleLocationClick}
+                    focusedLocation={focusedLocation}
                   />
                   
                   {/* Location list for map legend */}
@@ -576,17 +613,31 @@ export default function CulturalDiscovery() {
                           <Badge variant="secondary" className="text-xs">
                             {categoryIcons[location.category as keyof typeof categoryIcons] || categoryIcons.default}
                           </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(location.id);
-                            }}
-                            className="text-muted-foreground hover:text-red-500"
-                          >
-                            <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                centerMapOnLocation(location);
+                              }}
+                              className="text-muted-foreground hover:text-blue-500"
+                              title="Center map on this location"
+                            >
+                              <MapPin className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(location.id);
+                              }}
+                              className="text-muted-foreground hover:text-red-500"
+                            >
+                              <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
