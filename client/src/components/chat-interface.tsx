@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, User, Send, Copy, ThumbsUp } from 'lucide-react';
-import { type ChatMessage, type Conversation } from '@/lib/types';
+import { type ChatMessage, type Conversation, type UploadedFile } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { FileComparisonUpload } from './file-comparison-upload';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -13,6 +14,7 @@ interface ChatInterfaceProps {
   sessionId: string;
   conversation: Conversation | null;
   messages: ChatMessage[];
+  originalFiles: UploadedFile[];
   onMessagesUpdate: (messages: ChatMessage[]) => void;
 }
 
@@ -20,6 +22,7 @@ export function ChatInterface({
   sessionId, 
   conversation, 
   messages, 
+  originalFiles,
   onMessagesUpdate 
 }: ChatInterfaceProps) {
   const [followUpMessage, setFollowUpMessage] = useState('');
@@ -70,6 +73,39 @@ export function ChatInterface({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    }
+  };
+
+  const handleFileComparison = async (originalFile: UploadedFile, newFile: UploadedFile) => {
+    setSending(true);
+
+    try {
+      const response = await apiRequest('POST', '/api/compare-files', {
+        sessionId,
+        originalFileId: originalFile.id,
+        newFileId: newFile.id,
+      });
+      
+      const data = await response.json();
+      
+      // Fetch updated messages
+      const messagesResponse = await fetch(`/api/conversation/${sessionId}`);
+      const messagesData = await messagesResponse.json();
+      
+      onMessagesUpdate(messagesData.messages);
+      toast({
+        title: "Comparison complete",
+        description: "AI has analyzed your improved version and provided feedback.",
+      });
+    } catch (error) {
+      console.error('File comparison error:', error);
+      toast({
+        title: "Comparison failed",
+        description: "Failed to compare files. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -192,6 +228,15 @@ export function ChatInterface({
       {/* Chat Input */}
       {conversation && (
         <div className="p-6 border-t border-slate-200">
+          {/* File Comparison Upload */}
+          <div className="mb-4">
+            <FileComparisonUpload
+              sessionId={sessionId}
+              originalFiles={originalFiles}
+              onComparisonComplete={handleFileComparison}
+            />
+          </div>
+          
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <Textarea

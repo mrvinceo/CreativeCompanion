@@ -312,6 +312,7 @@ Examples:
             sessionId={sessionId}
             conversation={conversation}
             messages={messages}
+            originalFiles={files}
             onMessagesUpdate={setMessages}
           />
         </div>
