@@ -4,8 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import multer from "multer";
 import path from "path";
-import fs from "fs/promises";
-import fsSync from "fs";
+import { Client } from "@replit/object-storage";
 import { fileURLToPath } from 'url';
 import { insertFileSchema, insertConversationSchema, insertMessageSchema } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -13,6 +12,9 @@ import Stripe from "stripe";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize Replit Object Storage client
+const objectStorage = new Client();
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -31,13 +33,13 @@ const MEDIA_SYSTEM_PROMPTS = {
   creativeWriting: "You are an experienced creative writing instructor and published author with expertise across various literary forms. Review the submitted text for narrative structure, character development, prose style, dialogue, and overall literary merit. Provide constructive feedback on both craft and creative expression."
 } as const;
 
-// Configure multer for file uploads
+// Configure multer for file uploads (using memory storage for Object Storage)
 const upload = multer({
-  dest: "uploads/",
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     const allowedMimes = [
       "image/jpeg",
       "image/png", 
@@ -94,9 +96,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const uploadedFiles = [];
 
       for (const file of req.files) {
+        // Generate unique filename for Object Storage
+        const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
+        
+        // Upload to Object Storage
+        await objectStorage.upload(uniqueFilename, file.buffer);
+
         const userId = req.user?.claims?.sub || null;
         const fileData = insertFileSchema.parse({
-          filename: file.filename,
+          filename: uniqueFilename,
           originalName: file.originalname,
           mimeType: file.mimetype,
           size: file.size,
@@ -137,19 +145,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "File not found" });
       }
 
-      const fs = await import('fs');
-      const path = await import('path');
-      const filePath = path.join(process.cwd(), 'uploads', file.filename);
+      // Get file from Object Storage
+      const objectUrl = await objectStorage.getDownloadUrl(file.filename);
       
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "File content not found" });
-      }
-
       res.setHeader('Content-Type', file.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`);
       
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      // Redirect to the Object Storage URL
+      res.redirect(objectUrl);
     } catch (error) {
       console.error("Serve file error:", error);
       res.status(500).json({ message: "Failed to serve file" });
