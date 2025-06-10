@@ -182,11 +182,39 @@ export default function CulturalDiscovery() {
         longitude: userLocation.longitude
       });
     } else {
-      toast({
-        title: "Location Required",
-        description: "Please enable location access to discover nearby places",
-        variant: "destructive",
-      });
+      // Retry getting location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserLocation({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            });
+            discoverLocationsMutation.mutate({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            });
+          },
+          (error) => {
+            toast({
+              title: "Location Access Required",
+              description: "Please enable location access in your browser to discover nearby places, or search by city name instead.",
+              variant: "destructive",
+            });
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      } else {
+        toast({
+          title: "Location Not Supported",
+          description: "Your browser doesn't support location services. Please search by city name instead.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -363,23 +391,26 @@ export default function CulturalDiscovery() {
           <TabsTrigger value="map-view">Map View</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all-locations">
+        <TabsContent value="current-results">
           <Card>
             <CardHeader>
-              <CardTitle>Your Discovered Locations</CardTitle>
+              <CardTitle>Current Search Results</CardTitle>
               <CardDescription>
-                All cultural points of interest you've discovered
+                {discoveryResults.length > 0 
+                  ? `${discoveryResults.length} locations from your most recent search`
+                  : "No search results yet. Try searching for a location above."
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {locationsLoading ? (
-                <div className="flex items-center justify-center p-8">
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                </div>
-              ) : (
+              {discoveryResults.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {locationsData?.locations?.map((location: DiscoveryLocation) => (
-                    <Card key={location.id} className="h-fit">
+                  {discoveryResults.map((location) => (
+                    <Card 
+                      key={location.id} 
+                      className="h-fit cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => handleLocationClick(location)}
+                    >
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -396,7 +427,10 @@ export default function CulturalDiscovery() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => toggleFavorite(location.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(location.id);
+                            }}
                             className="text-muted-foreground hover:text-red-500"
                           >
                             <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
@@ -420,6 +454,11 @@ export default function CulturalDiscovery() {
                       </CardContent>
                     </Card>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Search for a location or use "Discover Nearby Places" to see cultural points of interest here.</p>
                 </div>
               )}
             </CardContent>
@@ -490,42 +529,154 @@ export default function CulturalDiscovery() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="saved-discoveries">
+        <TabsContent value="map-view">
           <Card>
             <CardHeader>
-              <CardTitle>Saved Discovery Sessions</CardTitle>
+              <CardTitle>Map View</CardTitle>
               <CardDescription>
-                Your saved discovery sessions and collections
+                {discoveryResults.length > 0 
+                  ? `Showing ${discoveryResults.length} locations on the map`
+                  : "Search for locations to see them on the map"
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                {savedDiscoveriesData?.discoveries?.map((discovery: SavedDiscovery) => (
-                  <Card key={discovery.id}>
-                    <CardHeader>
-                      <CardTitle className="text-lg">{discovery.name}</CardTitle>
-                      <CardDescription>
-                        {discovery.description || "No description"}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="text-sm text-muted-foreground">
-                        <strong>Search:</strong> {discovery.searchQuery}
+              {discoveryResults.length > 0 || currentSearchCenter ? (
+                <div className="space-y-4">
+                  {/* Simple map placeholder with location info */}
+                  <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-8 min-h-[400px] flex flex-col items-center justify-center">
+                    <MapPin className="w-16 h-16 mb-4 text-primary" />
+                    <h3 className="text-lg font-semibold mb-2">Map View</h3>
+                    {currentSearchCenter && (
+                      <div className="text-center text-muted-foreground mb-4">
+                        <p className="mb-1">
+                          {currentSearchCenter.searchQuery 
+                            ? `Search area: ${currentSearchCenter.searchQuery}`
+                            : `Current location: ${currentSearchCenter.latitude.toFixed(4)}, ${currentSearchCenter.longitude.toFixed(4)}`
+                          }
+                        </p>
+                        <p className="text-sm">Found {discoveryResults.length} cultural points of interest</p>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        <strong>Interests:</strong> {discovery.userInterests.join(", ") || "None specified"}
+                    )}
+                    <div className="text-sm text-muted-foreground text-center max-w-md">
+                      <p className="mb-2">Interactive map functionality would be implemented here with:</p>
+                      <ul className="text-left space-y-1">
+                        <li>• Pin markers for each discovered location</li>
+                        <li>• Click to view location details</li>
+                        <li>• Different icons for different categories</li>
+                        <li>• Search center marker</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  {/* Location list for map */}
+                  {discoveryResults.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">Locations on Map</h4>
+                      <div className="grid gap-2 max-h-64 overflow-y-auto">
+                        {discoveryResults.map((location, index) => (
+                          <div 
+                            key={location.id}
+                            className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                            onClick={() => handleLocationClick(location)}
+                          >
+                            <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{location.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{location.address}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              {categoryIcons[location.category as keyof typeof categoryIcons] || categoryIcons.default}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(location.id);
+                              }}
+                              className="text-muted-foreground hover:text-red-500"
+                            >
+                              <Heart className={`w-4 h-4 ${isFavorite(location.id) ? 'fill-current text-red-500' : ''}`} />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Saved {new Date(discovery.createdAt).toLocaleDateString()}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Search for a location to see it on the map with discovered cultural points of interest.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Location Detail Modal */}
+      <Dialog open={!!selectedLocation} onOpenChange={() => setSelectedLocation(null)}>
+        <DialogContent className="max-w-2xl">
+          {selectedLocation && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {categoryIcons[selectedLocation.category as keyof typeof categoryIcons] || categoryIcons.default}
+                  {selectedLocation.name}
+                </DialogTitle>
+                <DialogDescription>
+                  <Badge variant="secondary" className="text-xs">
+                    <span className="capitalize">{selectedLocation.category.replace('_', ' ')}</span>
+                  </Badge>
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Location</h4>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {selectedLocation.address}
+                  </p>
+                  {selectedLocation.latitude !== "0" && selectedLocation.longitude !== "0" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Coordinates: {selectedLocation.latitude}, {selectedLocation.longitude}
+                    </p>
+                  )}
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Cultural Significance</h4>
+                  <p className="text-sm text-muted-foreground">{selectedLocation.culturalSignificance}</p>
+                </div>
+                
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant={isFavorite(selectedLocation.id) ? "default" : "outline"}
+                    onClick={() => toggleFavorite(selectedLocation.id)}
+                    className="flex-1"
+                  >
+                    <Heart className={`w-4 h-4 mr-2 ${isFavorite(selectedLocation.id) ? 'fill-current' : ''}`} />
+                    {isFavorite(selectedLocation.id) ? 'Favorited' : 'Add to Favorites'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setSelectedLocation(null)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
