@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Palette, Lightbulb, LogOut, User, Plus } from 'lucide-react';
+import { Palette, Lightbulb, LogOut, User, Plus, MapPin } from 'lucide-react';
 import { FileUpload } from '@/components/file-upload';
 import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';

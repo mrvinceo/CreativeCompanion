@@ -1,6 +1,6 @@
 import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -245,7 +245,7 @@ export class DatabaseStorage implements IStorage {
 
   async removeFavoriteLocation(userId: string, locationId: number): Promise<void> {
     await db.delete(favoriteLocations)
-      .where(eq(favoriteLocations.userId, userId) && eq(favoriteLocations.locationId, locationId));
+      .where(and(eq(favoriteLocations.userId, userId), eq(favoriteLocations.locationId, locationId)));
   }
 
   async createSavedDiscovery(insertDiscovery: InsertSavedDiscovery): Promise<SavedDiscovery> {

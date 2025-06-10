@@ -903,6 +903,201 @@ ${aiResponse}`;
     res.json({ received: true });
   });
 
+  // Cultural Discovery API routes
+  app.post("/api/discover-locations", isAuthenticated, async (req: any, res) => {
+    try {
+      const { latitude, longitude, searchQuery, radius = 10 } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      // Get user's interests for personalized discovery
+      const user = await storage.getUser(userId);
+      const userInterests = user?.interests || [];
+
+      // Use AI to discover cultural points of interest
+      const discoveryPrompt = `You are a cultural discovery expert. Based on the location ${latitude ? `(${latitude}, ${longitude})` : searchQuery} and user interests: ${userInterests.join(', ')}, identify 8-12 cultural and creative points of interest in the area.
+
+Include diverse locations such as:
+- Museums and galleries
+- Historic sites with artistic/cultural significance
+- Venues associated with famous artists, photographers, writers, filmmakers
+- Creative districts and cultural neighborhoods
+- Independent theaters, music venues, and performance spaces
+- Artist studios, workshops, and creative spaces
+- Cultural landmarks and architectural significance
+- Libraries, bookshops with cultural importance
+
+For each location, provide:
+1. Name
+2. Brief description (2-3 sentences)
+3. Address or general location
+4. Category (museum, gallery, historic_site, performance_venue, artist_studio, etc.)
+5. Cultural significance (why it's important to creative people)
+6. Approximate coordinates if possible
+
+Format as JSON array with this structure:
+[{
+  "name": "Location Name",
+  "description": "Brief description...",
+  "address": "Full address or area description",
+  "category": "museum",
+  "culturalSignificance": "Why this matters to artists/creatives...",
+  "latitude": "approximate_lat",
+  "longitude": "approximate_lng"
+}]
+
+Focus on authentic, real locations that exist. If exact coordinates aren't available, provide best estimates.`;
+
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+      const result = await model.generateContent(discoveryPrompt);
+      const response = await result.response;
+      const aiResponse = response.text();
+
+      // Parse AI response to extract locations
+      let discoveredLocations;
+      try {
+        // Extract JSON from AI response
+        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          discoveredLocations = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("No valid JSON found in AI response");
+        }
+      } catch (parseError) {
+        console.error("Failed to parse AI response:", parseError);
+        return res.status(500).json({ message: "Failed to parse discovery results" });
+      }
+
+      // Save discovered locations to database
+      const savedLocations = [];
+      for (const location of discoveredLocations) {
+        try {
+          const locationData = {
+            userId,
+            name: location.name,
+            description: location.description,
+            latitude: location.latitude || "0",
+            longitude: location.longitude || "0",
+            address: location.address,
+            category: location.category,
+            culturalSignificance: location.culturalSignificance,
+            aiGenerated: true
+          };
+          
+          const savedLocation = await storage.createDiscoveryLocation(locationData);
+          savedLocations.push(savedLocation);
+        } catch (error) {
+          console.error("Failed to save location:", error);
+        }
+      }
+
+      res.json({ 
+        locations: savedLocations,
+        searchCenter: { latitude, longitude, searchQuery }
+      });
+    } catch (error) {
+      console.error("Discovery error:", error);
+      res.status(500).json({ message: "Failed to discover locations" });
+    }
+  });
+
+  // Get user's discovered locations
+  app.get("/api/discovered-locations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const locations = await storage.getDiscoveryLocationsByUser(userId);
+      res.json({ locations });
+    } catch (error) {
+      console.error("Get locations error:", error);
+      res.status(500).json({ message: "Failed to get locations" });
+    }
+  });
+
+  // Add location to favorites
+  app.post("/api/favorite-location", isAuthenticated, async (req: any, res) => {
+    try {
+      const { locationId, notes } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      const favorite = await storage.createFavoriteLocation({
+        userId,
+        locationId,
+        notes
+      });
+
+      res.json({ favorite });
+    } catch (error) {
+      console.error("Favorite location error:", error);
+      res.status(500).json({ message: "Failed to favorite location" });
+    }
+  });
+
+  // Remove location from favorites
+  app.delete("/api/favorite-location/:locationId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { locationId } = req.params;
+      const userId = req.user?.claims?.sub;
+
+      await storage.removeFavoriteLocation(userId, parseInt(locationId));
+      res.json({ message: "Location removed from favorites" });
+    } catch (error) {
+      console.error("Remove favorite error:", error);
+      res.status(500).json({ message: "Failed to remove favorite" });
+    }
+  });
+
+  // Get user's favorite locations
+  app.get("/api/favorite-locations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const favorites = await storage.getFavoriteLocationsByUser(userId);
+      res.json({ favorites });
+    } catch (error) {
+      console.error("Get favorites error:", error);
+      res.status(500).json({ message: "Failed to get favorites" });
+    }
+  });
+
+  // Save discovery session
+  app.post("/api/save-discovery", isAuthenticated, async (req: any, res) => {
+    try {
+      const { name, description, centerLatitude, centerLongitude, locationIds, searchQuery } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      const user = await storage.getUser(userId);
+      const discovery = await storage.createSavedDiscovery({
+        userId,
+        name,
+        description,
+        centerLatitude,
+        centerLongitude,
+        locationIds,
+        searchQuery,
+        userInterests: user?.interests || []
+      });
+
+      res.json({ discovery });
+    } catch (error) {
+      console.error("Save discovery error:", error);
+      res.status(500).json({ message: "Failed to save discovery" });
+    }
+  });
+
+  // Get saved discoveries
+  app.get("/api/saved-discoveries", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const discoveries = await storage.getSavedDiscoveriesByUser(userId);
+      res.json({ discoveries });
+    } catch (error) {
+      console.error("Get discoveries error:", error);
+      res.status(500).json({ message: "Failed to get discoveries" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
