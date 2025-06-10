@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 
-interface Location {
+interface DiscoveryLocation {
   id: number;
   name: string;
   description: string;
@@ -15,9 +15,9 @@ interface Location {
 }
 
 interface GoogleMapProps {
-  locations: Location[];
+  locations: DiscoveryLocation[];
   center: { latitude: number; longitude: number };
-  onLocationClick?: (location: Location) => void;
+  onLocationClick?: (location: DiscoveryLocation) => void;
 }
 
 const categoryColors = {
