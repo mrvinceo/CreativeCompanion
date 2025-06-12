@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import Landing from "@/pages/landing";
 import Success from "@/pages/success";
 import CulturalDiscovery from "@/pages/cultural-discovery";
+import Notes from "@/pages/notes";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/cultural-discovery" component={CulturalDiscovery} />
+          <Route path="/notes" component={Notes} />
           <Route path="/success" component={Success} />
         </>
       )}

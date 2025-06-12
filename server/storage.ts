@@ -271,6 +271,55 @@ export class DatabaseStorage implements IStorage {
   async deleteSavedDiscovery(id: number): Promise<void> {
     await db.delete(savedDiscoveries).where(eq(savedDiscoveries.id, id));
   }
+
+  // Notes operations
+  async createNote(insertNote: InsertNote): Promise<Note> {
+    const [note] = await db
+      .insert(notes)
+      .values(insertNote)
+      .returning();
+    return note;
+  }
+
+  async getNotesByUser(userId: string): Promise<Note[]> {
+    return await db.select().from(notes)
+      .where(eq(notes.userId, userId))
+      .orderBy(notes.createdAt);
+  }
+
+  async getNotesByConversation(conversationId: number): Promise<Note[]> {
+    return await db.select().from(notes)
+      .where(eq(notes.conversationId, conversationId))
+      .orderBy(notes.createdAt);
+  }
+
+  async searchNotes(userId: string, searchTerm: string): Promise<Note[]> {
+    return await db.select().from(notes)
+      .where(
+        and(
+          eq(notes.userId, userId),
+          or(
+            ilike(notes.title, `%${searchTerm}%`),
+            ilike(notes.content, `%${searchTerm}%`),
+            ilike(notes.category, `%${searchTerm}%`)
+          )
+        )
+      )
+      .orderBy(notes.createdAt);
+  }
+
+  async updateNote(id: number, updateData: Partial<InsertNote>): Promise<Note> {
+    const [note] = await db
+      .update(notes)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(notes.id, id))
+      .returning();
+    return note;
+  }
+
+  async deleteNote(id: number): Promise<void> {
+    await db.delete(notes).where(eq(notes.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();

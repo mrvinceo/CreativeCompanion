@@ -6,7 +6,7 @@ import multer from "multer";
 import path from "path";
 import { Client } from "@replit/object-storage";
 import { fileURLToPath } from 'url';
-import { insertFileSchema, insertConversationSchema, insertMessageSchema } from "@shared/schema";
+import { insertFileSchema, insertConversationSchema, insertMessageSchema, insertNoteSchema } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Stripe from "stripe";
 
@@ -1124,6 +1124,89 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
     } catch (error) {
       console.error("Get discoveries error:", error);
       res.status(500).json({ message: "Failed to get discoveries" });
+    }
+  });
+
+  // Notes API routes
+  // Create a new note
+  app.post("/api/notes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const noteData = insertNoteSchema.parse({ ...req.body, userId });
+      
+      const note = await storage.createNote(noteData);
+      res.json({ note });
+    } catch (error) {
+      console.error("Create note error:", error);
+      res.status(500).json({ message: "Failed to create note" });
+    }
+  });
+
+  // Get all notes for a user
+  app.get("/api/notes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const notes = await storage.getNotesByUser(userId);
+      res.json({ notes });
+    } catch (error) {
+      console.error("Get notes error:", error);
+      res.status(500).json({ message: "Failed to get notes" });
+    }
+  });
+
+  // Get notes for a specific conversation
+  app.get("/api/notes/conversation/:conversationId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { conversationId } = req.params;
+      const notes = await storage.getNotesByConversation(parseInt(conversationId));
+      res.json({ notes });
+    } catch (error) {
+      console.error("Get conversation notes error:", error);
+      res.status(500).json({ message: "Failed to get conversation notes" });
+    }
+  });
+
+  // Search notes
+  app.get("/api/notes/search", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { q } = req.query;
+      
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ message: "Search query required" });
+      }
+      
+      const notes = await storage.searchNotes(userId, q);
+      res.json({ notes });
+    } catch (error) {
+      console.error("Search notes error:", error);
+      res.status(500).json({ message: "Failed to search notes" });
+    }
+  });
+
+  // Update a note
+  app.put("/api/notes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      const note = await storage.updateNote(parseInt(id), updateData);
+      res.json({ note });
+    } catch (error) {
+      console.error("Update note error:", error);
+      res.status(500).json({ message: "Failed to update note" });
+    }
+  });
+
+  // Delete a note
+  app.delete("/api/notes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteNote(parseInt(id));
+      res.json({ message: "Note deleted successfully" });
+    } catch (error) {
+      console.error("Delete note error:", error);
+      res.status(500).json({ message: "Failed to delete note" });
     }
   });
 
