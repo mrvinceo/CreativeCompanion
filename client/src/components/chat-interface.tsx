@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, User, Send, Copy, ThumbsUp } from 'lucide-react';
+import { Bot, User, Send, Copy, ThumbsUp, BookOpen } from 'lucide-react';
 import { type ChatMessage, type Conversation, type UploadedFile } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import { FileComparisonUpload } from './file-comparison-upload';
 import { ComparisonImages } from './comparison-images';
 import ReactMarkdown from 'react-markdown';
@@ -28,8 +29,14 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [followUpMessage, setFollowUpMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [extractingNotes, setExtractingNotes] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Fetch user subscription status
+  const { data: subscription } = useQuery({
+    queryKey: ['/api/subscription'],
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

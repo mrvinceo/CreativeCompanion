@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, ExternalLink, Edit, Trash2, BookOpen, Lightbulb, Palette, Globe } from "lucide-react";
+import { Search, Plus, ExternalLink, Edit, Trash2, BookOpen, Lightbulb, Palette, Globe, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface Note {
   id: number;
@@ -35,6 +36,7 @@ const categoryIcons = {
 
 export default function Notes() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -146,11 +148,21 @@ export default function Notes() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Notes</h1>
-          <p className="text-muted-foreground mt-1">
-            Resources and insights from your feedback conversations
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation('/')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Notes</h1>
+            <p className="text-muted-foreground mt-1">
+              Resources and insights from your feedback conversations
+            </p>
+          </div>
         </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
