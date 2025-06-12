@@ -24,44 +24,64 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Function to extract notes from AI responses
 async function extractNotesFromAIResponse(aiResponse: string, conversationId: number, userId: string) {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const OpenAI = (await import('openai')).default;
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const extractionPrompt = `Analyze this AI feedback response and extract any valuable resources, techniques, or advice that could be useful for future reference:
+    const extractionPrompt = `Analyze this AI feedback and extract any valuable insights that could be saved as reference notes. Look for specific techniques, artistic principles, resources, or actionable advice mentioned in the feedback.
 
+Feedback content:
 "${aiResponse}"
 
-Extract and categorize any:
-1. RESOURCES: Websites, books, artists, galleries, or specific references mentioned
-2. TECHNIQUES: Specific artistic/creative techniques, methods, or approaches described
-3. ADVICE: General principles, rules, or guidelines that could apply broadly
+Extract any of the following types of insights:
+- TECHNIQUES: Specific artistic methods, composition rules, technical approaches
+- ADVICE: General principles, best practices, or improvement suggestions
+- RESOURCES: Mentions of books, websites, artists, galleries, tools, or references
 
-For each item found, provide:
-- title: Brief descriptive title
-- content: The specific advice, technique description, or resource information
-- category: "resource", "technique", or "advice"  
-- link: Any URL mentioned (if applicable)
+Create a JSON response with an "items" array containing up to 5 extracted notes. Each note should have:
+- title: Concise descriptive title (under 60 chars)
+- content: Detailed explanation (under 300 chars)  
+- category: One of "technique", "advice", or "resource"
+- link: URL if mentioned, otherwise null
 
-Format as JSON array:
-[{
-  "title": "Rule of Thirds in Photography",
-  "content": "The rule of thirds divides your frame into nine equal sections...",
-  "category": "technique",
-  "link": null
-}]
+Example response:
+{
+  "items": [
+    {
+      "title": "Leading Lines Composition",
+      "content": "Use natural or architectural elements to create lines that guide the viewer's eye toward your main subject. Roads, fences, or shadows work well as leading lines.",
+      "category": "technique",
+      "link": null
+    }
+  ]
+}
 
-If no extractable items are found, return empty array: []`;
+If no valuable insights are found, return: {"items": []}`;
 
-    const result = await model.generateContent(extractionPrompt);
-    const response = await result.response;
-    const extractedText = response.text();
+    const result = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert at analyzing creative feedback and extracting valuable resources, techniques, and advice. Always respond with valid JSON format."
+        },
+        {
+          role: "user",
+          content: extractionPrompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 1500
+    });
+
+    const extractedText = result.choices[0].message.content;
 
     // Parse the JSON response
     let extractedNotes;
     try {
-      const jsonMatch = extractedText.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        extractedNotes = JSON.parse(jsonMatch[0]);
+      if (extractedText && extractedText.trim()) {
+        const parsed = JSON.parse(extractedText);
+        // Handle both direct array and object with array property
+        extractedNotes = Array.isArray(parsed) ? parsed : (parsed.notes || parsed.items || []);
       } else {
         extractedNotes = [];
       }
@@ -1314,30 +1334,35 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-      const extractionPrompt = `Analyze this AI feedback response and extract up to 5 valuable resources, techniques, or advice that could be useful for future reference:
+      const extractionPrompt = `Analyze this AI feedback and extract any valuable insights that could be saved as reference notes. Look for specific techniques, artistic principles, resources, or actionable advice mentioned in the feedback.
 
+Feedback content:
 "${messageContent}"
 
-Extract and categorize any:
-1. RESOURCES: Websites, books, artists, galleries, or specific references mentioned
-2. TECHNIQUES: Specific artistic/creative techniques, methods, or approaches described  
-3. ADVICE: General principles, rules, or guidelines that could apply broadly
+Extract any of the following types of insights:
+- TECHNIQUES: Specific artistic methods, composition rules, technical approaches
+- ADVICE: General principles, best practices, or improvement suggestions
+- RESOURCES: Mentions of books, websites, artists, galleries, tools, or references
 
-For each item found, provide:
-- title: Brief descriptive title (max 60 characters)
-- content: The specific advice, technique description, or resource information (max 300 characters)
-- category: "resource", "technique", or "advice"
-- link: Any URL mentioned (if applicable, otherwise null)
+Create a JSON response with an "items" array containing up to 5 extracted notes. Each note should have:
+- title: Concise descriptive title (under 60 chars)
+- content: Detailed explanation (under 300 chars)  
+- category: One of "technique", "advice", or "resource"
+- link: URL if mentioned, otherwise null
 
-Format as JSON array, maximum 5 items:
-[{
-  "title": "Rule of Thirds in Photography",
-  "content": "The rule of thirds divides your frame into nine equal sections with two horizontal and two vertical lines. Placing subjects along these lines or at intersections creates more balanced, visually appealing compositions.",
-  "category": "technique", 
-  "link": null
-}]
+Example response:
+{
+  "items": [
+    {
+      "title": "Leading Lines Composition",
+      "content": "Use natural or architectural elements to create lines that guide the viewer's eye toward your main subject. Roads, fences, or shadows work well as leading lines.",
+      "category": "technique",
+      "link": null
+    }
+  ]
+}
 
-If no extractable items are found, return empty array: []`;
+If no valuable insights are found, return: {"items": []}`;
 
       const result = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
