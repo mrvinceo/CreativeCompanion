@@ -196,6 +196,15 @@ export default function Home() {
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => setLocation('/notes')}
+                  className="px-2 sm:px-3"
+                >
+                  <BookOpen className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Notes</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={startNewConversation}
                   className="px-2 sm:px-3"
                 >

@@ -21,6 +21,76 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Function to extract notes from AI responses
+async function extractNotesFromAIResponse(aiResponse: string, conversationId: number, userId: string) {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_API_KEY || "");
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+    const extractionPrompt = `Analyze this AI feedback response and extract any valuable resources, techniques, or advice that could be useful for future reference:
+
+"${aiResponse}"
+
+Extract and categorize any:
+1. RESOURCES: Websites, books, artists, galleries, or specific references mentioned
+2. TECHNIQUES: Specific artistic/creative techniques, methods, or approaches described
+3. ADVICE: General principles, rules, or guidelines that could apply broadly
+
+For each item found, provide:
+- title: Brief descriptive title
+- content: The specific advice, technique description, or resource information
+- category: "resource", "technique", or "advice"  
+- link: Any URL mentioned (if applicable)
+
+Format as JSON array:
+[{
+  "title": "Rule of Thirds in Photography",
+  "content": "The rule of thirds divides your frame into nine equal sections...",
+  "category": "technique",
+  "link": null
+}]
+
+If no extractable items are found, return empty array: []`;
+
+    const result = await model.generateContent(extractionPrompt);
+    const response = await result.response;
+    const extractedText = response.text();
+
+    // Parse the JSON response
+    let extractedNotes;
+    try {
+      const jsonMatch = extractedText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        extractedNotes = JSON.parse(jsonMatch[0]);
+      } else {
+        extractedNotes = [];
+      }
+    } catch (parseError) {
+      console.log("Failed to parse extraction response, skipping note creation");
+      return;
+    }
+
+    // Create notes for each extracted item
+    for (const noteData of extractedNotes) {
+      if (noteData.title && noteData.content && noteData.category) {
+        await storage.createNote({
+          userId,
+          conversationId,
+          title: noteData.title,
+          content: noteData.content,
+          link: noteData.link || undefined,
+          type: 'ai_extracted',
+          category: noteData.category,
+          tags: []
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Note extraction error:", error);
+    // Don't throw - note extraction is optional and shouldn't break the main flow
+  }
+}
+
 // Media type system prompts
 const MEDIA_SYSTEM_PROMPTS = {
   photography: "You are an expert photography tutor, with a broad background in photography practice and theory. Your job is to provide professional feedback on the work submitted, including how it can be improved and aspects that show promise. If more than one image file is submitted, try to determine any connection between the images, and if a file containing text is provided, treat that as additional context when providing your feedback.",
@@ -410,6 +480,9 @@ Provide only the title, no additional text.`;
 
       const savedMessage = await storage.createMessage(messageData);
 
+      // Extract notes from AI response
+      await extractNotesFromAIResponse(aiMessage, conversation.id, conversation.userId);
+
       res.json({ 
         conversation,
         message: savedMessage 
@@ -469,6 +542,9 @@ Provide only the title, no additional text.`;
       });
 
       const savedMessage = await storage.createMessage(aiMessageData);
+
+      // Extract notes from AI response
+      await extractNotesFromAIResponse(aiMessage, conversation.id, conversation.userId || "");
 
       res.json({ message: savedMessage });
     } catch (error) {
