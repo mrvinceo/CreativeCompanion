@@ -1311,8 +1311,8 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
         });
       }
 
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       const extractionPrompt = `Analyze this AI feedback response and extract up to 5 valuable resources, techniques, or advice that could be useful for future reference:
 
@@ -1339,16 +1339,31 @@ Format as JSON array, maximum 5 items:
 
 If no extractable items are found, return empty array: []`;
 
-      const result = await model.generateContent(extractionPrompt);
-      const response = await result.response;
-      const extractedText = response.text();
+      const result = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert at analyzing creative feedback and extracting valuable resources, techniques, and advice. Always respond with valid JSON format."
+          },
+          {
+            role: "user",
+            content: extractionPrompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 1500
+      });
+
+      const extractedText = result.choices[0].message.content;
 
       // Parse the JSON response
       let extractedNotes;
       try {
-        const jsonMatch = extractedText.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          extractedNotes = JSON.parse(jsonMatch[0]);
+        if (extractedText && extractedText.trim()) {
+          const parsed = JSON.parse(extractedText);
+          // Handle both direct array and object with array property
+          extractedNotes = Array.isArray(parsed) ? parsed : (parsed.notes || parsed.items || []);
         } else {
           extractedNotes = [];
         }

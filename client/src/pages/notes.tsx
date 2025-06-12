@@ -359,6 +359,85 @@ export default function Notes() {
           </Button>
         </div>
       )}
+
+      {/* Mobile Floating Action Button */}
+      <div className="sm:hidden fixed bottom-6 right-6 z-50">
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg" className="h-14 w-14 rounded-full shadow-lg">
+              <Plus className="w-6 h-6" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Create New Note</DialogTitle>
+              <DialogDescription>
+                Add a new note with resources or insights for future reference.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  placeholder="Enter note title..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="content">Content</Label>
+                <Textarea
+                  id="content"
+                  value={noteContent}
+                  onChange={(e) => setNoteContent(e.target.value)}
+                  placeholder="Enter your note content..."
+                  rows={4}
+                />
+              </div>
+              <div>
+                <Label htmlFor="link">Link (optional)</Label>
+                <Input
+                  id="link"
+                  type="url"
+                  value={noteLink}
+                  onChange={(e) => setNoteLink(e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Select value={noteCategory} onValueChange={setNoteCategory}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="resource">Resource</SelectItem>
+                    <SelectItem value="advice">Advice</SelectItem>
+                    <SelectItem value="technique">Technique</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleCreateNote}
+                  disabled={createNoteMutation.isPending}
+                  className="flex-1"
+                >
+                  {createNoteMutation.isPending ? "Creating..." : "Create Note"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
