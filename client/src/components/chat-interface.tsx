@@ -32,6 +32,7 @@ export function ChatInterface({
   const [sending, setSending] = useState(false);
   const [extractingNotes, setExtractingNotes] = useState<number | null>(null);
   const [conversationHasNotes, setConversationHasNotes] = useState<Set<number>>(new Set());
+  const [messagesWithNotes, setMessagesWithNotes] = useState<Set<number>>(new Set());
   const [, setLocation] = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -61,11 +62,20 @@ export function ChatInterface({
       if (!conversation) return;
       
       try {
-        const response = await fetch(`/api/notes?conversation=${conversation.id}`);
+        const response = await fetch(`/api/notes/conversation/${conversation.id}`);
         const data = await response.json();
         
         if (data.notes && data.notes.length > 0) {
           setConversationHasNotes(prev => new Set(prev).add(conversation.id));
+          
+          // Check which messages have notes by looking at the extracted notes
+          // For now, if any notes exist for the conversation, assume they came from AI messages
+          // This is a simplified approach - in a real app you'd track message-note relationships
+          const aiMessages = messages.filter(m => m.role === 'ai');
+          if (aiMessages.length > 0 && data.notes.some((note: any) => note.type === 'ai_extracted')) {
+            // Mark the first AI message as having notes for now
+            setMessagesWithNotes(prev => new Set(prev).add(aiMessages[0].id));
+          }
         }
       } catch (error) {
         console.error('Failed to check existing notes:', error);
@@ -73,7 +83,7 @@ export function ChatInterface({
     };
 
     checkExistingNotes();
-  }, [conversation]);
+  }, [conversation, messages]);
 
   const sendMessage = async () => {
     if (!followUpMessage.trim() || sending || !conversation) return;
@@ -187,6 +197,9 @@ export function ChatInterface({
         
         // Mark this conversation as having notes
         setConversationHasNotes(prev => new Set(prev).add(conversation.id));
+        
+        // Mark this specific message as having notes extracted
+        setMessagesWithNotes(prev => new Set(prev).add(messageId));
         
         toast({
           title: "Notes Created",
@@ -362,7 +375,7 @@ export function ChatInterface({
                       size="sm"
                       variant={canExtractNotes() ? "outline" : "secondary"}
                       onClick={() => {
-                        if (conversation && conversationHasNotes.has(conversation.id)) {
+                        if (messagesWithNotes.has(message.id)) {
                           showNotesForConversation();
                         } else {
                           extractNotes(message.id, message.content);
@@ -374,7 +387,7 @@ export function ChatInterface({
                       <BookOpen className="w-3 h-3 mr-1" />
                       {extractingNotes === message.id 
                         ? 'Creating...' 
-                        : (conversation && conversationHasNotes.has(conversation.id))
+                        : messagesWithNotes.has(message.id)
                           ? 'Show Notes'
                           : 'Create Notes'}
                     </Button>

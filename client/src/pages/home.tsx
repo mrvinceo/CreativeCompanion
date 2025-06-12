@@ -41,6 +41,10 @@ export default function Home() {
   useEffect(() => {
     if (sessionParam && sessionParam !== sessionId) {
       setSessionId(sessionParam);
+      // Clear URL parameter after setting session
+      if (window.history.replaceState) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     }
   }, [sessionParam]);
 
