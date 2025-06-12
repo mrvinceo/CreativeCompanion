@@ -52,11 +52,7 @@ export default function Notes() {
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const conversationFilter = urlParams.get('conversation');
   
-  // Debug logging
-  console.log('Notes page - full location:', location);
-  console.log('Notes page - URL search part:', location.split('?')[1]);
-  console.log('Notes page - conversationFilter:', conversationFilter);
-  console.log('Notes page - query key:', conversationFilter ? ['/api/notes/conversation', conversationFilter] : ['/api/notes']);
+
 
   // Fetch notes (either all notes or conversation-specific)
   const { data: notesData, isLoading } = useQuery<{ notes: Note[] }>({
@@ -374,7 +370,7 @@ export default function Notes() {
                       <button
                         onClick={() => {
                           // Navigate to home with session parameter to load specific conversation
-                          setLocation(`/?session=${note.sessionId}`);
+                          window.location.href = `/?session=${note.sessionId}`;
                         }}
                         className="text-blue-600 hover:text-blue-800 hover:underline ml-1"
                       >

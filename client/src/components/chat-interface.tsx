@@ -231,8 +231,7 @@ export function ChatInterface({
 
   const showNotesForConversation = () => {
     if (conversation) {
-      console.log('Navigating to notes with conversation ID:', conversation.id);
-      setLocation(`/notes?conversation=${conversation.id}`);
+      window.location.href = `/notes?conversation=${conversation.id}`;
     }
   };
 

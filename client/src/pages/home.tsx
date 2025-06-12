@@ -38,19 +38,19 @@ export default function Home() {
   const [analyzing, setAnalyzing] = useState(false);
   const { toast } = useToast();
 
-  // Handle session parameter changes
+  // Handle session parameter changes - this effect should run when location changes
   useEffect(() => {
-    console.log('Home page - URL sessionParam:', sessionParam);
-    console.log('Home page - current sessionId:', sessionId);
-    if (sessionParam && sessionParam !== sessionId) {
-      console.log('Setting new sessionId:', sessionParam);
-      setSessionId(sessionParam);
+    const currentUrlParams = new URLSearchParams(location.split('?')[1] || '');
+    const currentSessionParam = currentUrlParams.get('session');
+    
+    if (currentSessionParam && currentSessionParam !== sessionId) {
+      setSessionId(currentSessionParam);
       // Clear URL parameter after setting session
       if (window.history.replaceState) {
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
-  }, [sessionParam]);
+  }, [location]);
 
   // Load existing conversation on mount
   useEffect(() => {
