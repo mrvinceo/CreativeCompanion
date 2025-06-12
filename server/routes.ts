@@ -24,7 +24,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Function to extract notes from AI responses
 async function extractNotesFromAIResponse(aiResponse: string, conversationId: number, userId: string) {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_API_KEY || "");
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
     const extractionPrompt = `Analyze this AI feedback response and extract any valuable resources, techniques, or advice that could be useful for future reference:
@@ -1311,7 +1311,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
         });
       }
 
-      const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_API_KEY || "");
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
       const extractionPrompt = `Analyze this AI feedback response and extract up to 5 valuable resources, techniques, or advice that could be useful for future reference:

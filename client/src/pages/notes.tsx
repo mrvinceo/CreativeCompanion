@@ -146,33 +146,34 @@ export default function Notes() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => setLocation('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Button>
+    <div className="container mx-auto p-4 sm:p-6 space-y-6">
+      <div className="space-y-4">
+        <Button
+          variant="ghost"
+          onClick={() => setLocation('/')}
+          className="flex items-center gap-2 p-2 -ml-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Button>
+        
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Notes</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Notes</h1>
             <p className="text-muted-foreground mt-1">
               Resources and insights from your feedback conversations
             </p>
           </div>
-        </div>
-        
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Note
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          
+          <div className="hidden sm:block">
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="shrink-0">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Note
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Create New Note</DialogTitle>
               <DialogDescription>
@@ -241,6 +242,8 @@ export default function Notes() {
             </div>
           </DialogContent>
         </Dialog>
+          </div>
+        </div>
       </div>
 
       {/* Search and Filter Section */}
