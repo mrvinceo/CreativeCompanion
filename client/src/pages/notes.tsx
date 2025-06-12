@@ -25,6 +25,7 @@ interface Note {
   tags?: string[];
   createdAt: string;
   updatedAt: string;
+  sessionId?: string;
 }
 
 const categoryIcons = {
@@ -362,13 +363,12 @@ export default function Notes() {
                 )}
                 <div className="text-xs text-muted-foreground mt-3">
                   {new Date(note.createdAt).toLocaleDateString()}
-                  {note.conversationId && (
+                  {note.conversationId && note.sessionId && (
                     <span className="ml-2">• 
                       <button
                         onClick={() => {
-                          // Navigate to conversation history and find the conversation
-                          setLocation('/');
-                          // The conversation will be selected from the history
+                          // Navigate to home with session parameter to load specific conversation
+                          setLocation(`/?session=${note.sessionId}`);
                         }}
                         className="text-blue-600 hover:text-blue-800 hover:underline ml-1"
                       >

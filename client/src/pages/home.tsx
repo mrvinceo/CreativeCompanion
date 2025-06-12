@@ -21,7 +21,14 @@ import { useLocation } from 'wouter';
 export default function Home() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
-  const [sessionId, setSessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  
+  // Check for session parameter in URL
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const sessionParam = urlParams.get('session');
+  
+  const [sessionId, setSessionId] = useState(() => 
+    sessionParam || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  );
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [contextPrompt, setContextPrompt] = useState('');
   const [mediaType, setMediaType] = useState<MediaType | ''>('');
@@ -29,6 +36,13 @@ export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const { toast } = useToast();
+
+  // Handle session parameter changes
+  useEffect(() => {
+    if (sessionParam && sessionParam !== sessionId) {
+      setSessionId(sessionParam);
+    }
+  }, [sessionParam]);
 
   // Load existing conversation on mount
   useEffect(() => {
