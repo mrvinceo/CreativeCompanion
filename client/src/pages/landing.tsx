@@ -23,19 +23,20 @@ export default function Landing() {
       <main className="flex-1 flex flex-col">
         <section className="flex-1 flex items-center justify-center px-6 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl font-bold text-slate-900 mb-6">
-              Get Expert Feedback on Your
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Creative Work</span>
+            <RefynLogo size={80} className="mb-8 justify-center" />
+            <h1 className="text-5xl font-bold text-foreground mb-6">
+              AI-Powered Design Feedback for
+              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Creative Professionals</span>
             </h1>
-            <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
-              Upload your photography, paintings, music, films, or any creative project and receive personalized AI feedback from specialized tutors.
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Upload your photography, paintings, music, films, or any creative project and receive personalized AI feedback to refine your artistic vision.
             </p>
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-primary to-secondary text-lg px-8 py-4"
+              className="text-lg px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => window.location.href = '/api/login'}
             >
-              Start Getting Feedback
+              Get Started
             </Button>
           </div>
         </section>

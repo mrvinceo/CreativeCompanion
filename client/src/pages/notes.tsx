@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Search, Plus, ExternalLink, Edit, Trash2, BookOpen, Lightbulb, Palette, Globe, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { RefynLogo } from "@/components/refyn-logo";
 
 interface Note {
   id: number;

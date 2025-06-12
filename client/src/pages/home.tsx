@@ -11,6 +11,7 @@ import { ChatInterface } from '@/components/chat-interface';
 import { ConversationHistory } from '@/components/conversation-history';
 import { SubscriptionStatus } from '@/components/subscription-status';
 import { ProfileDialog } from '@/components/profile-dialog';
+import { RefynLogo } from '@/components/refyn-logo';
 import { type UploadedFile, type ChatMessage, type Conversation } from '@/lib/types';
 import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
 import { useAuth } from '@/hooks/useAuth';
@@ -189,17 +190,12 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-3 sm:px-6 py-3">
+      <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-              <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            </div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 hidden xs:block">CreativeAI</h1>
-            <h1 className="text-lg font-bold text-slate-900 xs:hidden">AI</h1>
-          </div>
+          <RefynLogo size={32} showText={false} className="sm:hidden" />
+          <RefynLogo size={36} className="hidden sm:flex" />
           <div className="flex items-center space-x-1 sm:space-x-3">
             {user && (
               <>
