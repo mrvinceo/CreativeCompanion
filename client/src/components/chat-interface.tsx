@@ -69,12 +69,17 @@ export function ChatInterface({
           setConversationHasNotes(prev => new Set(prev).add(conversation.id));
           
           // Check which messages have notes by looking at the extracted notes
-          // For now, if any notes exist for the conversation, assume they came from AI messages
-          // This is a simplified approach - in a real app you'd track message-note relationships
+          // Mark all AI messages as having notes if any AI-extracted notes exist
+          // This is a simplified approach since we don't track specific message-note relationships
           const aiMessages = messages.filter(m => m.role === 'ai');
           if (aiMessages.length > 0 && data.notes.some((note: any) => note.type === 'ai_extracted')) {
-            // Mark the first AI message as having notes for now
-            setMessagesWithNotes(prev => new Set(prev).add(aiMessages[0].id));
+            // Mark all AI messages as having notes to show "Show Notes" button
+            const aiMessageIds = aiMessages.map(m => m.id);
+            setMessagesWithNotes(prev => {
+              const newSet = new Set(prev);
+              aiMessageIds.forEach(id => newSet.add(id));
+              return newSet;
+            });
           }
         }
       } catch (error) {
@@ -226,6 +231,7 @@ export function ChatInterface({
 
   const showNotesForConversation = () => {
     if (conversation) {
+      console.log('Navigating to notes with conversation ID:', conversation.id);
       setLocation(`/notes?conversation=${conversation.id}`);
     }
   };

@@ -26,9 +26,10 @@ export default function Home() {
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const sessionParam = urlParams.get('session');
   
-  const [sessionId, setSessionId] = useState(() => 
-    sessionParam || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  );
+  const [sessionId, setSessionId] = useState(() => {
+    const param = urlParams.get('session');
+    return param || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  });
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [contextPrompt, setContextPrompt] = useState('');
   const [mediaType, setMediaType] = useState<MediaType | ''>('');
@@ -39,7 +40,10 @@ export default function Home() {
 
   // Handle session parameter changes
   useEffect(() => {
+    console.log('Home page - URL sessionParam:', sessionParam);
+    console.log('Home page - current sessionId:', sessionId);
     if (sessionParam && sessionParam !== sessionId) {
+      console.log('Setting new sessionId:', sessionParam);
       setSessionId(sessionParam);
       // Clear URL parameter after setting session
       if (window.history.replaceState) {
