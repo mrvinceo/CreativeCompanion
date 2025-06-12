@@ -1,20 +1,19 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Palette, Lightbulb, Users, Zap } from 'lucide-react';
+import { RefynLogo } from '@/components/refyn-logo';
 
 export default function Landing() {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-6 py-4">
+      <header className="bg-card/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-              <Palette className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-slate-900">CreativeAI</h1>
-          </div>
-          <Button onClick={() => window.location.href = '/api/login'}>
+          <RefynLogo size={40} />
+          <Button 
+            onClick={() => window.location.href = '/api/login'}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             Sign In
           </Button>
         </div>
