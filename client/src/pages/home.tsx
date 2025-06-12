@@ -22,12 +22,9 @@ export default function Home() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   
-  // Check for session parameter in URL
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const sessionParam = urlParams.get('session');
-  
+  // Session state that updates based on URL parameters
   const [sessionId, setSessionId] = useState(() => {
-    const param = urlParams.get('session');
+    const param = new URLSearchParams(window.location.search).get('session');
     return param || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   });
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -40,8 +37,7 @@ export default function Home() {
 
   // Handle session parameter changes - this effect should run when location changes
   useEffect(() => {
-    const currentUrlParams = new URLSearchParams(location.split('?')[1] || '');
-    const currentSessionParam = currentUrlParams.get('session');
+    const currentSessionParam = new URLSearchParams(window.location.search).get('session');
     
     if (currentSessionParam && currentSessionParam !== sessionId) {
       setSessionId(currentSessionParam);

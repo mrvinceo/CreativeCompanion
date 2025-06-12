@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -48,9 +48,15 @@ export default function Notes() {
   const [noteLink, setNoteLink] = useState("");
   const [noteCategory, setNoteCategory] = useState("general");
 
-  // Check for conversation filter in URL params
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const conversationFilter = urlParams.get('conversation');
+  // Check for conversation filter in URL params using window.location
+  const [conversationFilter, setConversationFilter] = useState<string | null>(null);
+  
+  // Update conversation filter when location changes
+  useEffect(() => {
+    const filter = new URLSearchParams(window.location.search).get('conversation');
+    console.log('Notes page - URL filter detected:', filter);
+    setConversationFilter(filter);
+  }, [location]);
   
 
 
