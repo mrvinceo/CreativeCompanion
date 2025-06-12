@@ -1286,6 +1286,116 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
     }
   });
 
+  // Extract notes from AI feedback message
+  app.post("/api/extract-notes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { conversationId, messageContent, messageId } = req.body;
+
+      if (!conversationId || !messageContent) {
+        return res.status(400).json({ message: "Conversation ID and message content are required" });
+      }
+
+      // Get user to check subscription eligibility
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user is eligible (not free plan unless academic)
+      const isEligible = user.subscriptionPlan !== 'free' || user.email?.endsWith('oca.ac.uk');
+      if (!isEligible) {
+        return res.status(403).json({ 
+          message: "Note extraction is available for students and paying users only",
+          needsUpgrade: true
+        });
+      }
+
+      const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_API_KEY || "");
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+      const extractionPrompt = `Analyze this AI feedback response and extract up to 5 valuable resources, techniques, or advice that could be useful for future reference:
+
+"${messageContent}"
+
+Extract and categorize any:
+1. RESOURCES: Websites, books, artists, galleries, or specific references mentioned
+2. TECHNIQUES: Specific artistic/creative techniques, methods, or approaches described  
+3. ADVICE: General principles, rules, or guidelines that could apply broadly
+
+For each item found, provide:
+- title: Brief descriptive title (max 60 characters)
+- content: The specific advice, technique description, or resource information (max 300 characters)
+- category: "resource", "technique", or "advice"
+- link: Any URL mentioned (if applicable, otherwise null)
+
+Format as JSON array, maximum 5 items:
+[{
+  "title": "Rule of Thirds in Photography",
+  "content": "The rule of thirds divides your frame into nine equal sections with two horizontal and two vertical lines. Placing subjects along these lines or at intersections creates more balanced, visually appealing compositions.",
+  "category": "technique", 
+  "link": null
+}]
+
+If no extractable items are found, return empty array: []`;
+
+      const result = await model.generateContent(extractionPrompt);
+      const response = await result.response;
+      const extractedText = response.text();
+
+      // Parse the JSON response
+      let extractedNotes;
+      try {
+        const jsonMatch = extractedText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          extractedNotes = JSON.parse(jsonMatch[0]);
+        } else {
+          extractedNotes = [];
+        }
+      } catch (parseError) {
+        console.error("Failed to parse extraction response:", parseError);
+        return res.status(500).json({ message: "Failed to parse AI response" });
+      }
+
+      // Limit to maximum 5 notes
+      const limitedNotes = extractedNotes.slice(0, 5);
+
+      // Create notes for each extracted item
+      const createdNotes = [];
+      for (const noteData of limitedNotes) {
+        if (noteData.title && noteData.content && noteData.category) {
+          try {
+            const note = await storage.createNote({
+              userId,
+              conversationId: parseInt(conversationId),
+              title: noteData.title,
+              content: noteData.content,
+              link: noteData.link || undefined,
+              type: 'ai_extracted',
+              category: noteData.category,
+              tags: []
+            });
+            createdNotes.push(note);
+          } catch (error) {
+            console.error("Failed to create note:", error);
+          }
+        }
+      }
+
+      res.json({ 
+        success: true,
+        notes: createdNotes,
+        extracted: createdNotes.length
+      });
+    } catch (error) {
+      console.error("Note extraction error:", error);
+      res.status(500).json({ 
+        message: "Failed to extract notes",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

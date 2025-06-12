@@ -34,7 +34,13 @@ export function ChatInterface({
   const { toast } = useToast();
 
   // Fetch user subscription status
-  const { data: subscription } = useQuery({
+  const { data: subscription } = useQuery<{
+    subscriptionPlan: 'free' | 'standard' | 'premium' | 'academic';
+    subscriptionStatus?: string;
+    conversationsThisMonth: number;
+    conversationLimit: number;
+    isAcademic: boolean;
+  }>({
     queryKey: ['/api/subscription'],
   });
 
@@ -124,6 +130,60 @@ export function ChatInterface({
         description: "Message copied successfully",
       });
     });
+  };
+
+  const extractNotes = async (messageId: number, messageContent: string) => {
+    if (!conversation) return;
+
+    // Check if user is allowed to extract notes
+    const isEligible = subscription?.subscriptionPlan !== 'free' || subscription?.isAcademic;
+    
+    if (!isEligible) {
+      toast({
+        title: "Upgrade Required",
+        description: "Note extraction is available for students and paying users only.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setExtractingNotes(messageId);
+
+    try {
+      const response = await apiRequest('POST', '/api/extract-notes', {
+        conversationId: conversation.id,
+        messageContent,
+        messageId,
+      });
+
+      const data = await response.json();
+      
+      if (data.notes && data.notes.length > 0) {
+        toast({
+          title: "Notes Created",
+          description: `Generated ${data.notes.length} notes from this feedback.`,
+        });
+      } else {
+        toast({
+          title: "No Notes Found",
+          description: "No extractable notes were found in this feedback.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Note extraction error:', error);
+      toast({
+        title: "Note Extraction Failed",
+        description: error.message || "Failed to extract notes. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExtractingNotes(null);
+    }
+  };
+
+  const canExtractNotes = () => {
+    return subscription?.subscriptionPlan !== 'free' || subscription?.isAcademic;
   };
 
   const formatTimestamp = (date: Date | string) => {
@@ -250,7 +310,7 @@ export function ChatInterface({
                 </div>
                 
                 {message.role === 'ai' && (
-                  <div className="flex items-center space-x-4 mt-2 text-xs text-slate-500">
+                  <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-2 text-xs text-slate-500">
                     <span>{formatTimestamp(message.createdAt)}</span>
                     <button 
                       onClick={() => copyToClipboard(message.content)}
@@ -263,6 +323,21 @@ export function ChatInterface({
                       <ThumbsUp className="w-3 h-3 mr-1" />
                       Helpful
                     </button>
+                    <Button
+                      size="sm"
+                      variant={canExtractNotes() ? "outline" : "secondary"}
+                      onClick={() => extractNotes(message.id, message.content)}
+                      disabled={extractingNotes === message.id || !canExtractNotes()}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <BookOpen className="w-3 h-3 mr-1" />
+                      {extractingNotes === message.id ? 'Creating...' : 'Create Notes'}
+                    </Button>
+                    {!canExtractNotes() && (
+                      <span className="text-orange-600 text-xs">
+                        Upgrade required for note extraction
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

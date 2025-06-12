@@ -48,12 +48,12 @@ export default function Notes() {
   const [noteCategory, setNoteCategory] = useState("general");
 
   // Fetch notes
-  const { data: notesData, isLoading } = useQuery({
+  const { data: notesData, isLoading } = useQuery<{ notes: Note[] }>({
     queryKey: ['/api/notes'],
   });
 
   // Search notes
-  const { data: searchResults, isLoading: isSearching } = useQuery({
+  const { data: searchResults, isLoading: isSearching } = useQuery<{ notes: Note[] }>({
     queryKey: ['/api/notes/search', searchQuery],
     enabled: searchQuery.length > 0,
     queryFn: async () => {
