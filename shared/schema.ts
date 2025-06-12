@@ -100,6 +100,20 @@ export const savedDiscoveries = pgTable("saved_discoveries", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const notes = pgTable("notes", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  link: text("link"),
+  type: varchar("type").notNull(), // 'ai_extracted', 'manual'
+  category: varchar("category"), // 'resource', 'advice', 'technique', 'general'
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertFileSchema = createInsertSchema(files).omit({
   id: true,
   uploadedAt: true,
@@ -130,6 +144,12 @@ export const insertSavedDiscoverySchema = createInsertSchema(savedDiscoveries).o
   createdAt: true,
 });
 
+export const insertNoteSchema = createInsertSchema(notes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -139,6 +159,7 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type InsertDiscoveryLocation = z.infer<typeof insertDiscoveryLocationSchema>;
 export type InsertFavoriteLocation = z.infer<typeof insertFavoriteLocationSchema>;
 export type InsertSavedDiscovery = z.infer<typeof insertSavedDiscoverySchema>;
+export type InsertNote = z.infer<typeof insertNoteSchema>;
 
 export type File = typeof files.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
@@ -146,3 +167,4 @@ export type Message = typeof messages.$inferSelect;
 export type DiscoveryLocation = typeof discoveryLocations.$inferSelect;
 export type FavoriteLocation = typeof favoriteLocations.$inferSelect;
 export type SavedDiscovery = typeof savedDiscoveries.$inferSelect;
+export type Note = typeof notes.$inferSelect;

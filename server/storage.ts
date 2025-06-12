@@ -1,6 +1,6 @@
-import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery } from "@shared/schema";
+import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, notes, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type Note, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery, type InsertNote } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, ilike } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -52,6 +52,14 @@ export interface IStorage {
   createSavedDiscovery(discovery: InsertSavedDiscovery): Promise<SavedDiscovery>;
   getSavedDiscoveriesByUser(userId: string): Promise<SavedDiscovery[]>;
   deleteSavedDiscovery(id: number): Promise<void>;
+
+  // Notes operations
+  createNote(note: InsertNote): Promise<Note>;
+  getNotesByUser(userId: string): Promise<Note[]>;
+  getNotesByConversation(conversationId: number): Promise<Note[]>;
+  searchNotes(userId: string, searchTerm: string): Promise<Note[]>;
+  updateNote(id: number, updateData: Partial<InsertNote>): Promise<Note>;
+  deleteNote(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
