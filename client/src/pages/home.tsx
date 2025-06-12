@@ -38,8 +38,10 @@ export default function Home() {
   // Handle session parameter changes - this effect should run when location changes
   useEffect(() => {
     const currentSessionParam = new URLSearchParams(window.location.search).get('session');
+    console.log('Home page - detected session param:', currentSessionParam, 'current sessionId:', sessionId);
     
     if (currentSessionParam && currentSessionParam !== sessionId) {
+      console.log('Home page - updating sessionId to:', currentSessionParam);
       setSessionId(currentSessionParam);
       // Clear URL parameter after setting session
       if (window.history.replaceState) {
