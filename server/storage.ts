@@ -281,20 +281,65 @@ export class DatabaseStorage implements IStorage {
     return note;
   }
 
-  async getNotesByUser(userId: string): Promise<Note[]> {
-    return await db.select().from(notes)
+  async getNotesByUser(userId: string): Promise<any[]> {
+    return await db.select({
+      id: notes.id,
+      userId: notes.userId,
+      conversationId: notes.conversationId,
+      title: notes.title,
+      content: notes.content,
+      link: notes.link,
+      type: notes.type,
+      category: notes.category,
+      tags: notes.tags,
+      createdAt: notes.createdAt,
+      updatedAt: notes.updatedAt,
+      sessionId: conversations.sessionId
+    })
+      .from(notes)
+      .leftJoin(conversations, eq(notes.conversationId, conversations.id))
       .where(eq(notes.userId, userId))
       .orderBy(notes.createdAt);
   }
 
-  async getNotesByConversation(conversationId: number): Promise<Note[]> {
-    return await db.select().from(notes)
+  async getNotesByConversation(conversationId: number): Promise<any[]> {
+    return await db.select({
+      id: notes.id,
+      userId: notes.userId,
+      conversationId: notes.conversationId,
+      title: notes.title,
+      content: notes.content,
+      link: notes.link,
+      type: notes.type,
+      category: notes.category,
+      tags: notes.tags,
+      createdAt: notes.createdAt,
+      updatedAt: notes.updatedAt,
+      sessionId: conversations.sessionId
+    })
+      .from(notes)
+      .leftJoin(conversations, eq(notes.conversationId, conversations.id))
       .where(eq(notes.conversationId, conversationId))
       .orderBy(notes.createdAt);
   }
 
-  async searchNotes(userId: string, searchTerm: string): Promise<Note[]> {
-    return await db.select().from(notes)
+  async searchNotes(userId: string, searchTerm: string): Promise<any[]> {
+    return await db.select({
+      id: notes.id,
+      userId: notes.userId,
+      conversationId: notes.conversationId,
+      title: notes.title,
+      content: notes.content,
+      link: notes.link,
+      type: notes.type,
+      category: notes.category,
+      tags: notes.tags,
+      createdAt: notes.createdAt,
+      updatedAt: notes.updatedAt,
+      sessionId: conversations.sessionId
+    })
+      .from(notes)
+      .leftJoin(conversations, eq(notes.conversationId, conversations.id))
       .where(
         and(
           eq(notes.userId, userId),

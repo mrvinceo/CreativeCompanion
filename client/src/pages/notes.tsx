@@ -51,9 +51,16 @@ export default function Notes() {
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const conversationFilter = urlParams.get('conversation');
 
-  // Fetch notes
+  // Fetch notes (either all notes or conversation-specific)
   const { data: notesData, isLoading } = useQuery<{ notes: Note[] }>({
-    queryKey: ['/api/notes'],
+    queryKey: conversationFilter ? ['/api/notes/conversation', conversationFilter] : ['/api/notes'],
+    queryFn: async () => {
+      const endpoint = conversationFilter 
+        ? `/api/notes/conversation/${conversationFilter}`
+        : '/api/notes';
+      const response = await apiRequest('GET', endpoint);
+      return response.json();
+    }
   });
 
   // Search notes
@@ -163,10 +170,23 @@ export default function Notes() {
         
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Notes</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">
+              {conversationFilter ? "Conversation Notes" : "Notes"}
+            </h1>
             <p className="text-muted-foreground mt-1">
-              Resources and insights from your feedback conversations
+              {conversationFilter 
+                ? "Notes extracted from this conversation"
+                : "Resources and insights from your feedback conversations"}
             </p>
+            {conversationFilter && (
+              <Button
+                variant="link"
+                onClick={() => setLocation('/notes')}
+                className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
+              >
+                ← View all notes
+              </Button>
+            )}
           </div>
           
           <div className="hidden sm:block">
@@ -343,7 +363,18 @@ export default function Notes() {
                 <div className="text-xs text-muted-foreground mt-3">
                   {new Date(note.createdAt).toLocaleDateString()}
                   {note.conversationId && (
-                    <span className="ml-2">• From conversation</span>
+                    <span className="ml-2">• 
+                      <button
+                        onClick={() => {
+                          // Navigate to conversation history and find the conversation
+                          setLocation('/');
+                          // The conversation will be selected from the history
+                        }}
+                        className="text-blue-600 hover:text-blue-800 hover:underline ml-1"
+                      >
+                        From conversation
+                      </button>
+                    </span>
                   )}
                 </div>
               </CardContent>
