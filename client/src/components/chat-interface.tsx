@@ -4,13 +4,14 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, User, Send, Copy, ThumbsUp, BookOpen } from 'lucide-react';
 import { type ChatMessage, type Conversation, type UploadedFile } from '@/lib/types';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { FileComparisonUpload } from './file-comparison-upload';
 import { ComparisonImages } from './comparison-images';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useLocation } from 'wouter';
 
 interface ChatInterfaceProps {
   sessionId: string;
@@ -30,6 +31,8 @@ export function ChatInterface({
   const [followUpMessage, setFollowUpMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [extractingNotes, setExtractingNotes] = useState<number | null>(null);
+  const [conversationHasNotes, setConversationHasNotes] = useState<Set<number>>(new Set());
+  const [, setLocation] = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -51,6 +54,26 @@ export function ChatInterface({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Check for existing notes when conversation loads
+  useEffect(() => {
+    const checkExistingNotes = async () => {
+      if (!conversation) return;
+      
+      try {
+        const response = await fetch(`/api/notes?conversation=${conversation.id}`);
+        const data = await response.json();
+        
+        if (data.notes && data.notes.length > 0) {
+          setConversationHasNotes(prev => new Set(prev).add(conversation.id));
+        }
+      } catch (error) {
+        console.error('Failed to check existing notes:', error);
+      }
+    };
+
+    checkExistingNotes();
+  }, [conversation]);
 
   const sendMessage = async () => {
     if (!followUpMessage.trim() || sending || !conversation) return;
@@ -159,6 +182,12 @@ export function ChatInterface({
       const data = await response.json();
       
       if (data.notes && data.notes.length > 0) {
+        // Update the notes cache to trigger real-time updates
+        queryClient.invalidateQueries({ queryKey: ['/api/notes'] });
+        
+        // Mark this conversation as having notes
+        setConversationHasNotes(prev => new Set(prev).add(conversation.id));
+        
         toast({
           title: "Notes Created",
           description: `Generated ${data.notes.length} notes from this feedback.`,
@@ -179,6 +208,12 @@ export function ChatInterface({
       });
     } finally {
       setExtractingNotes(null);
+    }
+  };
+
+  const showNotesForConversation = () => {
+    if (conversation) {
+      setLocation(`/notes?conversation=${conversation.id}`);
     }
   };
 
@@ -326,12 +361,22 @@ export function ChatInterface({
                     <Button
                       size="sm"
                       variant={canExtractNotes() ? "outline" : "secondary"}
-                      onClick={() => extractNotes(message.id, message.content)}
+                      onClick={() => {
+                        if (conversation && conversationHasNotes.has(conversation.id)) {
+                          showNotesForConversation();
+                        } else {
+                          extractNotes(message.id, message.content);
+                        }
+                      }}
                       disabled={extractingNotes === message.id || !canExtractNotes()}
                       className="h-6 px-2 text-xs"
                     >
                       <BookOpen className="w-3 h-3 mr-1" />
-                      {extractingNotes === message.id ? 'Creating...' : 'Create Notes'}
+                      {extractingNotes === message.id 
+                        ? 'Creating...' 
+                        : (conversation && conversationHasNotes.has(conversation.id))
+                          ? 'Show Notes'
+                          : 'Create Notes'}
                     </Button>
                     {!canExtractNotes() && (
                       <span className="text-orange-600 text-xs">

@@ -36,7 +36,7 @@ const categoryIcons = {
 
 export default function Notes() {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -46,6 +46,10 @@ export default function Notes() {
   const [noteContent, setNoteContent] = useState("");
   const [noteLink, setNoteLink] = useState("");
   const [noteCategory, setNoteCategory] = useState("general");
+
+  // Check for conversation filter in URL params
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const conversationFilter = urlParams.get('conversation');
 
   // Fetch notes
   const { data: notesData, isLoading } = useQuery<{ notes: Note[] }>({
