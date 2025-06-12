@@ -167,16 +167,25 @@ export default function Notes() {
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      <div className="space-y-4">
-        <Button
-          variant="ghost"
-          onClick={() => setLocation('/')}
-          className="flex items-center gap-2 p-2 -ml-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </Button>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <RefynLogo size={32} showText={false} className="sm:hidden" />
+          <RefynLogo size={36} className="hidden sm:flex" />
+          <Button
+            variant="ghost"
+            onClick={() => setLocation('/')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Button>
+        </div>
+      </header>
+      
+      <div className="container mx-auto p-4 sm:p-6 space-y-6">
+        <div className="space-y-4">
         
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -482,6 +491,7 @@ export default function Notes() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
     </div>
   );
 }
