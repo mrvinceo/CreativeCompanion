@@ -679,12 +679,16 @@ Provide only the title, no additional text.`;
         return res.status(400).json({ message: "No image file provided" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).claims.sub;
       const fileExtension = path.extname(req.file.originalname);
       const fileName = `profile_${userId}_${Date.now()}${fileExtension}`;
       
       // Save to Object Storage
-      await objectStorage.upload(fileName, req.file.buffer);
+      const uploadResult = await objectStorage.uploadFromBuffer(fileName, req.file.buffer);
+      
+      if (!uploadResult.success) {
+        throw new Error("Failed to upload to object storage");
+      }
       
       // Return the object storage URL
       const imageUrl = `/api/files/profile/${fileName}`;
@@ -700,7 +704,11 @@ Provide only the title, no additional text.`;
   app.get("/api/files/profile/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
-      const fileData = await objectStorage.downloadAsBytes(filename);
+      const downloadResult = await objectStorage.downloadAsBytes(filename);
+      
+      if (!downloadResult.success) {
+        return res.status(404).json({ message: "Profile image not found" });
+      }
       
       // Set appropriate content type based on file extension
       const ext = path.extname(filename).toLowerCase();
@@ -710,7 +718,7 @@ Provide only the title, no additional text.`;
       
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
-      res.send(Buffer.from(fileData));
+      res.send(downloadResult.value);
     } catch (error) {
       console.error("Profile image serve error:", error);
       res.status(404).json({ message: "Profile image not found" });
