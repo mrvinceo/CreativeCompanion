@@ -194,8 +194,8 @@ export default function Home() {
       {/* Header */}
       <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <RefynLogo size={32} showText={false} className="sm:hidden" />
-          <RefynLogo size={36} className="hidden sm:flex" />
+          <RefynLogo size={32} showTitle={false} className="sm:hidden" />
+          <RefynLogo size={36} showTitle={true} className="hidden sm:flex" />
           <div className="flex items-center space-x-1 sm:space-x-3">
             {user && (
               <>

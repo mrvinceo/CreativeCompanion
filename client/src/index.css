@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 400; /* Regular */
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500; /* Medium */
+  }
+  
+  .title {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600; /* Semi Bold */
+  }
+}
+
 :root {
   /* Refyn Brand Colors */
   --refyn-yellow: hsl(42, 86%, 62%); /* #F5B041 */

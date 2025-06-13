@@ -9,7 +9,7 @@ export default function Landing() {
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <RefynLogo size={40} />
+          <RefynLogo size={40} showTitle={true} />
           <Button 
             onClick={() => window.location.href = '/api/login'}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -23,10 +23,10 @@ export default function Landing() {
       <main className="flex-1 flex flex-col">
         <section className="flex-1 flex items-center justify-center px-6 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <RefynLogo size={80} className="mb-8 justify-center" />
-            <h1 className="text-5xl font-bold text-foreground mb-6">
+            <RefynLogo size={80} showTitle={true} showSubtitle={true} className="mb-8 justify-center" />
+            <h1 className="text-5xl title text-foreground mb-6">
               AI-Powered Design Feedback for
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Creative Professionals</span>
+              <span className="text-primary"> Creative Professionals</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Upload your photography, paintings, music, films, or any creative project and receive personalized AI feedback to refine your artistic vision.
