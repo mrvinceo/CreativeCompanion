@@ -25,7 +25,7 @@ export function RefynLogo({
         <div className="flex flex-col">
           <span className="text-2xl title text-foreground">Refyn</span>
           {showSubtitle && (
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Designer App</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Your work: Refynd</span>
           )}
         </div>
       )}

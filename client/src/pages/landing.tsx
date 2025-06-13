@@ -25,11 +25,11 @@ export default function Landing() {
           <div className="max-w-4xl mx-auto text-center">
             <RefynLogo size={80} showTitle={true} showSubtitle={true} className="mb-8 justify-center" />
             <h1 className="text-5xl title text-foreground mb-6">
-              AI-Powered Design Feedback for
-              <span className="text-primary"> Creative Professionals</span>
+              AI-Powered Automated Feedback for
+              <span className="text-primary"> Creatives and Hobbyists</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Upload your photography, paintings, music, films, or any creative project and receive personalized AI feedback to refine your artistic vision.
+              Upload your photography, paintings, music, films, or any creative project and receive personalised AI feedback to refine your artistic vision.
             </p>
             <Button 
               size="lg" 
@@ -95,7 +95,7 @@ export default function Landing() {
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-8 py-4 border-white text-white hover:bg-white hover:text-slate-900"
+              className="text-lg px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => window.location.href = '/api/login'}
             >
               Get Started Free
