@@ -162,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).claims.sub;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -608,7 +608,7 @@ Provide only the title, no additional text.`;
   // Get user's conversation history
   app.get("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).claims.sub;
       const conversations = await storage.getConversationsByUser(userId);
       
       // Get file counts for each conversation
@@ -736,7 +736,7 @@ Provide only the title, no additional text.`;
   // Compare files endpoint
   app.post("/api/compare-files", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).claims.sub;
       const { sessionId, originalFileId, newFileId } = req.body;
 
       console.log('File comparison request:', { userId, sessionId, originalFileId, newFileId });
@@ -912,7 +912,7 @@ ${aiResponse}`;
   // Create Stripe checkout session for subscription
   app.post("/api/create-subscription", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).claims.sub;
       const { plan } = req.body; // 'standard' or 'premium'
       
       const user = await storage.getUser(userId);
@@ -986,7 +986,7 @@ ${aiResponse}`;
   // Cancel subscription
   app.post("/api/cancel-subscription", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).claims.sub;
       const user = await storage.getUser(userId);
       
       if (!user || !user.stripeSubscriptionId) {
