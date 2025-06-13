@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -683,16 +684,13 @@ Provide only the title, no additional text.`;
       const fileExtension = path.extname(req.file.originalname);
       const fileName = `profile_${userId}_${Date.now()}${fileExtension}`;
       
-      // Save to Object Storage
-      const uploadResult = await objectStorage.uploadFromBuffer(fileName, req.file.buffer);
-      
-      if (!uploadResult.success) {
-        throw new Error("Failed to upload to object storage");
-      }
-      
-      // Return the object storage URL
-      const imageUrl = `/api/files/profile/${fileName}`;
-      
+      // Use local file storage for profile images
+      const fs = await import('fs/promises');
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'profiles');
+      await fs.mkdir(uploadsDir, { recursive: true });
+      const filePath = path.join(uploadsDir, fileName);
+      await fs.writeFile(filePath, req.file.buffer);
+      const imageUrl = `/uploads/profiles/${fileName}`;
       res.json({ url: imageUrl });
     } catch (error) {
       console.error("Image upload error:", error);
@@ -700,29 +698,32 @@ Provide only the title, no additional text.`;
     }
   });
 
-  // Serve profile images from Object Storage
+  // Serve profile images from local storage
   app.get("/api/files/profile/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
-      const downloadResult = await objectStorage.downloadAsBytes(filename);
+      const fs = await import('fs/promises');
+      const filePath = path.join(process.cwd(), 'uploads', 'profiles', filename);
+      const fileBuffer = await fs.readFile(filePath);
       
-      if (!downloadResult.success) {
-        return res.status(404).json({ message: "Profile image not found" });
-      }
-      
-      // Set appropriate content type based on file extension
       const ext = path.extname(filename).toLowerCase();
       const contentType = ext === '.png' ? 'image/png' : 
                          ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
                          ext === '.gif' ? 'image/gif' : 'image/jpeg';
       
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
-      res.send(downloadResult.value);
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      res.send(fileBuffer);
     } catch (error) {
       console.error("Profile image serve error:", error);
       res.status(404).json({ message: "Profile image not found" });
     }
+  });
+
+  // Serve local profile images (moved to registerRoutes function)
+  app.use('/uploads', (req: any, res: any, next: any) => {
+    const staticMiddleware = require('express').static(path.join(process.cwd(), 'uploads'));
+    staticMiddleware(req, res, next);
   });
 
   // Compare files endpoint
