@@ -227,26 +227,22 @@ export default function Home() {
                   <Plus className="w-4 h-4 sm:mr-2" />
                   <span className="hidden sm:inline">New</span>
                 </Button>
-                <div className="flex items-center space-x-1 sm:space-x-2">
-                  {user.profileImageUrl ? (
-                    <img 
-                      src={user.profileImageUrl} 
-                      alt="Profile" 
-                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-slate-300 rounded-full flex items-center justify-center">
-                      <User className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
-                    </div>
-                  )}
-                  <span className="text-xs sm:text-sm text-slate-700 hidden md:block max-w-20 lg:max-w-none truncate">
-                    {user.firstName || user.email || 'User'}
-                  </span>
-                </div>
                 <ProfileDialog>
-                  <Button variant="ghost" size="sm" className="px-2 sm:px-3">
-                    <User className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Profile</span>
+                  <Button variant="ghost" size="sm" className="px-2 sm:px-3 flex items-center gap-1 sm:gap-2">
+                    {user.profileImageUrl ? (
+                      <img 
+                        src={user.profileImageUrl} 
+                        alt="Profile" 
+                        className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-slate-300 rounded-full flex items-center justify-center">
+                        <User className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
+                      </div>
+                    )}
+                    <span className="hidden sm:inline text-xs sm:text-sm">
+                      {user.firstName || user.email?.split('@')[0] || 'Profile'}
+                    </span>
                   </Button>
                 </ProfileDialog>
                 <Button 

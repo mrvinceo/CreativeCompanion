@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, X, Upload } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { User, X, Upload, Crown, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -57,13 +59,27 @@ interface ProfileDialogProps {
   children: React.ReactNode;
 }
 
+interface SubscriptionData {
+  subscriptionPlan: 'free' | 'standard' | 'premium' | 'academic';
+  subscriptionStatus?: string;
+  conversationsThisMonth: number;
+  conversationLimit: number;
+  isAcademic: boolean;
+}
+
 export function ProfileDialog({ children }: ProfileDialogProps) {
   const [open, setOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [upgrading, setUpgrading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: subscription } = useQuery<SubscriptionData>({
+    queryKey: ['/api/subscription'],
+  });
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -89,6 +105,50 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
       setImagePreview(user.profileImageUrl || '');
     }
   }, [open, user, form]);
+
+  const handleUpgrade = async (plan: 'standard' | 'premium') => {
+    try {
+      setUpgrading(true);
+      const response = await apiRequest('POST', '/api/create-subscription', { plan });
+      const data = await response.json();
+      
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Upgrade failed",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    try {
+      setCancelling(true);
+      const response = await apiRequest('POST', '/api/cancel-subscription');
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Subscription cancelled",
+          description: "Your subscription will end at the next billing cycle.",
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Cancellation failed",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
@@ -316,6 +376,144 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Subscription Management */}
+            <Separator />
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-lg font-medium">Subscription</h4>
+                <p className="text-sm text-muted-foreground">
+                  Manage your Refyn subscription plan
+                </p>
+              </div>
+
+              {subscription && (
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-yellow-600" />
+                      <span className="font-medium">Current Plan</span>
+                    </div>
+                    {subscription.isAcademic ? (
+                      <Badge className="bg-blue-500 text-white">Academic</Badge>
+                    ) : subscription.subscriptionPlan === 'premium' ? (
+                      <Badge className="bg-purple-500 text-white">Premium</Badge>
+                    ) : subscription.subscriptionPlan === 'standard' ? (
+                      <Badge className="bg-green-500 text-white">Standard</Badge>
+                    ) : (
+                      <Badge variant="secondary">Free</Badge>
+                    )}
+                  </div>
+
+                  <div className="text-sm text-muted-foreground mb-4">
+                    {subscription.conversationsThisMonth} / {subscription.conversationLimit} conversations used this month
+                  </div>
+
+                  {/* Upgrade Options for Free Users */}
+                  {subscription.subscriptionPlan === 'free' && (
+                    <div className="space-y-3">
+                      <div className="grid gap-3">
+                        <div className="p-3 border rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h5 className="font-medium">Standard</h5>
+                              <p className="text-xs text-muted-foreground">30 conversations/month + 2 improved versions per conversation</p>
+                            </div>
+                            <span className="text-lg font-bold">£10/mo</span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleUpgrade('standard')}
+                            disabled={upgrading}
+                            className="w-full"
+                          >
+                            {upgrading ? 'Processing...' : 'Upgrade to Standard'}
+                            <ExternalLink className="w-3 h-3 ml-1" />
+                          </Button>
+                        </div>
+                        
+                        <div className="p-3 border rounded-lg bg-purple-50">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h5 className="font-medium">Premium</h5>
+                              <p className="text-xs text-muted-foreground">50 conversations/month + 5 improved versions per conversation</p>
+                            </div>
+                            <span className="text-lg font-bold">£15/mo</span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleUpgrade('premium')}
+                            disabled={upgrading}
+                            className="w-full bg-purple-600 hover:bg-purple-700"
+                          >
+                            {upgrading ? 'Processing...' : 'Upgrade to Premium'}
+                            <ExternalLink className="w-3 h-3 ml-1" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upgrade/Downgrade Options for Paid Users */}
+                  {(subscription.subscriptionPlan === 'standard' || subscription.subscriptionPlan === 'premium') && !subscription.isAcademic && (
+                    <div className="space-y-3">
+                      {subscription.subscriptionPlan === 'standard' && (
+                        <div className="p-3 border rounded-lg bg-purple-50">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h5 className="font-medium">Upgrade to Premium</h5>
+                              <p className="text-xs text-muted-foreground">50 conversations/month + 5 improved versions per conversation</p>
+                            </div>
+                            <span className="text-lg font-bold">£15/mo</span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleUpgrade('premium')}
+                            disabled={upgrading}
+                            className="w-full bg-purple-600 hover:bg-purple-700"
+                          >
+                            {upgrading ? 'Processing...' : 'Upgrade to Premium'}
+                            <ExternalLink className="w-3 h-3 ml-1" />
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="p-3 border border-red-200 rounded-lg bg-red-50">
+                        <div className="flex items-start gap-2 mb-2">
+                          <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5" />
+                          <div>
+                            <h5 className="font-medium text-red-800">Cancel Subscription</h5>
+                            <p className="text-xs text-red-600">Your subscription will end at the next billing cycle</p>
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={handleCancelSubscription}
+                          disabled={cancelling}
+                          className="w-full"
+                        >
+                          {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Academic User Info */}
+                  {subscription.isAcademic && (
+                    <div className="p-3 border border-blue-200 rounded-lg bg-blue-50">
+                      <div className="flex items-center gap-2 text-blue-800">
+                        <Crown className="w-4 h-4" />
+                        <span className="text-sm font-medium">Academic Access</span>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-1">
+                        You have academic access with enhanced features. Contact support for any changes.
+                      </p>
+                    </div>
+                  )}
+                </Card>
               )}
             </div>
 
