@@ -938,6 +938,39 @@ ${aiResponse}`;
     }
   });
 
+  // Cancel subscription
+  app.post("/api/cancel-subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.stripeSubscriptionId) {
+        return res.status(404).json({ message: "No active subscription found" });
+      }
+
+      // Cancel the subscription at period end
+      await stripe.subscriptions.update(user.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      // Update user subscription status
+      await storage.updateUserSubscription(userId, {
+        subscriptionStatus: 'cancelling',
+      });
+
+      res.json({ 
+        success: true,
+        message: "Subscription will be cancelled at the end of the current billing period"
+      });
+    } catch (error) {
+      console.error("Subscription cancellation error:", error);
+      res.status(500).json({ 
+        message: "Failed to cancel subscription", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
   // Handle Stripe webhooks
   app.post("/api/stripe-webhook", async (req, res) => {
     const sig = req.headers['stripe-signature'];

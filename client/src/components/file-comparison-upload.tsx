@@ -237,7 +237,10 @@ export function FileComparisonUpload({
               <Card className="p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FileImage className="w-4 h-4 text-blue-600" />
+                    {(() => {
+                      const IconComponent = getFileIcon(newFile.type);
+                      return <IconComponent className="w-4 h-4 text-blue-600" />;
+                    })()}
                     <span className="text-sm font-medium truncate">
                       {newFile.name}
                     </span>
