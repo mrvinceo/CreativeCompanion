@@ -477,30 +477,16 @@ Provide only the title, no additional text.`;
               }
             });
           }
-          // For PDFs, extract text content
+          // For PDFs, send directly to Gemini 2.0 which can process them natively
           else if (file.mimeType === "application/pdf") {
-            try {
-              const pdfParse = (await import('pdf-parse')).default;
-              const pdfData = await pdfParse(fileBuffer);
-              const extractedText = pdfData.text.trim();
-              
-              if (extractedText && extractedText.length > 0) {
-                console.log(`Extracted ${extractedText.length} characters from PDF: ${file.filename}`);
-                parts.push({
-                  text: `Content from PDF "${file.originalName}":\n\n${extractedText}`
-                });
-              } else {
-                console.warn(`No text extracted from PDF: ${file.filename}`);
-                parts.push({
-                  text: `PDF File: ${file.originalName} (${Math.round(file.size / 1024)}KB) - No extractable text found`
-                });
+            console.log(`Adding PDF to analysis: ${file.filename}, size: ${fileBuffer.length} bytes`);
+            
+            parts.push({
+              inlineData: {
+                mimeType: file.mimeType,
+                data: fileBuffer.toString("base64")
               }
-            } catch (pdfError) {
-              console.error(`Failed to parse PDF ${file.filename}:`, pdfError);
-              parts.push({
-                text: `PDF File: ${file.originalName} (${Math.round(file.size / 1024)}KB) - Unable to extract text content`
-              });
-            }
+            });
           }
           // For other file types, include basic file info
           else {
@@ -649,7 +635,7 @@ Provide only the title, no additional text.`;
   // Get user subscription info and usage
   app.get("/api/subscription", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).claims.sub;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -675,7 +661,7 @@ Provide only the title, no additional text.`;
   // Update user profile
   app.put("/api/profile", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).claims.sub;
       const { firstName, lastName, artistStatement, interests, profileImageUrl } = req.body;
 
       // Validate artist statement length
