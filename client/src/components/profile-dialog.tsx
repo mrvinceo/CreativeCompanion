@@ -183,15 +183,21 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
       console.log('Profile update successful:', result);
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.setQueryData(['/api/auth/user'], data);
+      
+      // Update image preview with the new URL
+      if (data.profileImageUrl) {
+        setImagePreview(data.profileImageUrl);
+      }
+      
       toast({
         title: 'Profile updated',
         description: 'Your profile has been successfully updated.',
       });
       setOpen(false);
       setImageFile(null);
-      setImagePreview('');
     },
     onError: (error: any) => {
       toast({
