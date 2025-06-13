@@ -501,7 +501,9 @@ Provide only the title, no additional text.`;
       const savedMessage = await storage.createMessage(messageData);
 
       // Extract notes from AI response
-      await extractNotesFromAIResponse(aiMessage, conversation.id, conversation.userId);
+      if (conversation.userId) {
+        await extractNotesFromAIResponse(aiMessage, conversation.id, conversation.userId);
+      }
 
       res.json({ 
         conversation,
@@ -677,14 +679,41 @@ Provide only the title, no additional text.`;
         return res.status(400).json({ message: "No image file provided" });
       }
 
-      // In a real app, you'd upload to a cloud storage service like AWS S3, Cloudinary, etc.
-      // For now, we'll store locally and return a URL
-      const imageUrl = `/uploads/${req.file.filename}`;
+      const userId = req.user.claims.sub;
+      const fileExtension = path.extname(req.file.originalname);
+      const fileName = `profile_${userId}_${Date.now()}${fileExtension}`;
+      
+      // Save to Object Storage
+      await objectStorage.upload(fileName, req.file.buffer);
+      
+      // Return the object storage URL
+      const imageUrl = `/api/files/profile/${fileName}`;
       
       res.json({ url: imageUrl });
     } catch (error) {
       console.error("Image upload error:", error);
       res.status(500).json({ message: "Failed to upload image" });
+    }
+  });
+
+  // Serve profile images from Object Storage
+  app.get("/api/files/profile/:filename", async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const fileData = await objectStorage.downloadAsBytes(filename);
+      
+      // Set appropriate content type based on file extension
+      const ext = path.extname(filename).toLowerCase();
+      const contentType = ext === '.png' ? 'image/png' : 
+                         ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+                         ext === '.gif' ? 'image/gif' : 'image/jpeg';
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+      res.send(Buffer.from(fileData));
+    } catch (error) {
+      console.error("Profile image serve error:", error);
+      res.status(404).json({ message: "Profile image not found" });
     }
   });
 

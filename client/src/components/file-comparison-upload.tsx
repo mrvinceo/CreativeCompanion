@@ -59,9 +59,9 @@ export function FileComparisonUpload({
   const improvedVersionCount = getImprovedVersionCount();
   const canUploadMore = () => {
     if (!subscription) return false;
-    if (subscription.subscriptionPlan === 'free') return false;
-    if (subscription.subscriptionPlan === 'standard' || subscription.isAcademic) return improvedVersionCount < 2;
-    if (subscription.subscriptionPlan === 'premium') return improvedVersionCount < 5;
+    if (subscription.subscriptionPlan === 'free' && !subscription.isAcademic) return false;
+    if (subscription.subscriptionPlan === 'standard') return improvedVersionCount < 2;
+    if (subscription.subscriptionPlan === 'premium' || subscription.isAcademic) return improvedVersionCount < 5;
     return false;
   };
 
@@ -133,8 +133,8 @@ export function FileComparisonUpload({
     return null;
   }
 
-  // Show upgrade notice for free users
-  if (subscription?.subscriptionPlan === 'free') {
+  // Show upgrade notice for free users (but not academic users)
+  if (subscription?.subscriptionPlan === 'free' && !subscription?.isAcademic) {
     return (
       <Card className="p-3 border-orange-200 bg-orange-50">
         <div className="flex items-center gap-2">
@@ -150,7 +150,7 @@ export function FileComparisonUpload({
 
   // Show limit reached notice
   if (!canUploadMore()) {
-    const limit = subscription?.subscriptionPlan === 'standard' || subscription?.isAcademic ? 2 : 5;
+    const limit = subscription?.subscriptionPlan === 'standard' ? 2 : 5;
     return (
       <Card className="p-3 border-yellow-200 bg-yellow-50">
         <div className="flex items-center gap-2">

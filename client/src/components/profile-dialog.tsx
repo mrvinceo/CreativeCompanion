@@ -411,8 +411,8 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
                     {subscription.conversationsThisMonth} / {subscription.conversationLimit} conversations used this month
                   </div>
 
-                  {/* Upgrade Options for Free Users */}
-                  {subscription.subscriptionPlan === 'free' && (
+                  {/* Upgrade Options for Free Users (but not academic users) */}
+                  {subscription.subscriptionPlan === 'free' && !subscription.isAcademic && (
                     <div className="space-y-3">
                       <div className="grid gap-3">
                         <div className="p-3 border rounded-lg">
