@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Upload to Object Storage
         await objectStorage.uploadFromBytes(uniqueFilename, file.buffer);
 
-        const userId = req.user?.claims?.sub || null;
+        const userId = (req.user as any)?.claims?.sub || null;
         const fileData = insertFileSchema.parse({
           filename: uniqueFilename,
           originalName: file.originalname,
@@ -477,7 +477,32 @@ Provide only the title, no additional text.`;
               }
             });
           }
-          // For other file types, we'll include file info in text
+          // For PDFs, extract text content
+          else if (file.mimeType === "application/pdf") {
+            try {
+              const pdfParse = (await import('pdf-parse')).default;
+              const pdfData = await pdfParse(fileBuffer);
+              const extractedText = pdfData.text.trim();
+              
+              if (extractedText && extractedText.length > 0) {
+                console.log(`Extracted ${extractedText.length} characters from PDF: ${file.filename}`);
+                parts.push({
+                  text: `Content from PDF "${file.originalName}":\n\n${extractedText}`
+                });
+              } else {
+                console.warn(`No text extracted from PDF: ${file.filename}`);
+                parts.push({
+                  text: `PDF File: ${file.originalName} (${Math.round(file.size / 1024)}KB) - No extractable text found`
+                });
+              }
+            } catch (pdfError) {
+              console.error(`Failed to parse PDF ${file.filename}:`, pdfError);
+              parts.push({
+                text: `PDF File: ${file.originalName} (${Math.round(file.size / 1024)}KB) - Unable to extract text content`
+              });
+            }
+          }
+          // For other file types, include basic file info
           else {
             parts.push({
               text: `File: ${file.originalName} (${file.mimeType}, ${Math.round(file.size / 1024)}KB)`
@@ -720,11 +745,7 @@ Provide only the title, no additional text.`;
     }
   });
 
-  // Serve local profile images (moved to registerRoutes function)
-  app.use('/uploads', (req: any, res: any, next: any) => {
-    const staticMiddleware = require('express').static(path.join(process.cwd(), 'uploads'));
-    staticMiddleware(req, res, next);
-  });
+
 
   // Compare files endpoint
   app.post("/api/compare-files", isAuthenticated, async (req: any, res) => {
