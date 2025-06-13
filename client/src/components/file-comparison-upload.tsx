@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileImage, X } from 'lucide-react';
+import { Upload, FileImage, FileText, Music, Video, Crown, Lock, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { type UploadedFile } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
@@ -13,6 +14,14 @@ interface FileComparisonUploadProps {
   sessionId: string;
   originalFiles: UploadedFile[];
   onComparisonComplete: (originalFile: UploadedFile, newFile: UploadedFile) => void;
+}
+
+interface SubscriptionData {
+  subscriptionPlan: 'free' | 'standard' | 'premium' | 'academic';
+  subscriptionStatus?: string;
+  conversationsThisMonth: number;
+  conversationLimit: number;
+  isAcademic: boolean;
 }
 
 export function FileComparisonUpload({ 
@@ -26,9 +35,45 @@ export function FileComparisonUpload({
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
+  const { data: subscription } = useQuery<SubscriptionData>({
+    queryKey: ['/api/subscription'],
+  });
+
+  // Get file icon based on mime type
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return FileImage;
+    if (mimeType.startsWith('audio/')) return Music;
+    if (mimeType.startsWith('video/')) return Video;
+    return FileText;
+  };
+
+  // Check improved version count for the conversation
+  const getImprovedVersionCount = () => {
+    // Count files that are improvements based on original filename pattern
+    return originalFiles.filter(file => 
+      file.originalName.includes('_improved') || 
+      file.originalName.includes('_version')
+    ).length;
+  };
+
+  const improvedVersionCount = getImprovedVersionCount();
+  const canUploadMore = () => {
+    if (!subscription) return false;
+    if (subscription.subscriptionPlan === 'free') return false;
+    if (subscription.subscriptionPlan === 'standard' || subscription.isAcademic) return improvedVersionCount < 2;
+    if (subscription.subscriptionPlan === 'premium') return improvedVersionCount < 5;
+    return false;
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png']
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.bmp', '.tiff'],
+      'audio/*': ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a'],
+      'video/*': ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'],
+      'application/pdf': ['.pdf'],
+      'text/*': ['.txt', '.md', '.doc', '.docx'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
     },
     maxFiles: 1,
     onDrop: (acceptedFiles) => {
@@ -84,13 +129,38 @@ export function FileComparisonUpload({
     setNewFile(null);
   };
 
-  // Filter to only show image files for comparison
-  const imageFiles = originalFiles.filter(file => 
-    file.mimeType.startsWith('image/')
-  );
-
-  if (imageFiles.length === 0) {
+  if (originalFiles.length === 0) {
     return null;
+  }
+
+  // Show upgrade notice for free users
+  if (subscription?.subscriptionPlan === 'free') {
+    return (
+      <Card className="p-3 border-orange-200 bg-orange-50">
+        <div className="flex items-center gap-2">
+          <Lock className="w-4 h-4 text-orange-600" />
+          <span className="text-sm text-orange-800">
+            Upgrade to Standard to Upload Improved Version for re-evaluation
+          </span>
+          <Crown className="w-4 h-4 text-orange-600" />
+        </div>
+      </Card>
+    );
+  }
+
+  // Show limit reached notice
+  if (!canUploadMore()) {
+    const limit = subscription?.subscriptionPlan === 'standard' || subscription?.isAcademic ? 2 : 5;
+    return (
+      <Card className="p-3 border-yellow-200 bg-yellow-50">
+        <div className="flex items-center gap-2">
+          <Upload className="w-4 h-4 text-yellow-600" />
+          <span className="text-sm text-yellow-800">
+            You've reached your limit of {limit} improved versions per conversation
+          </span>
+        </div>
+      </Card>
+    );
   }
 
   return (
@@ -117,19 +187,22 @@ export function FileComparisonUpload({
                 <SelectValue placeholder="Choose original file..." />
               </SelectTrigger>
               <SelectContent>
-                {imageFiles.map((file) => (
-                  <SelectItem key={file.id} value={file.id.toString()}>
-                    <div className="flex items-center gap-2">
-                      <FileImage className="w-4 h-4" />
-                      <div className="flex flex-col text-left">
-                        {file.title && (
-                          <span className="font-medium text-sm">{file.title}</span>
-                        )}
-                        <span className="text-xs text-slate-500 truncate">{file.originalName}</span>
+                {originalFiles.map((file) => {
+                  const IconComponent = getFileIcon(file.mimeType);
+                  return (
+                    <SelectItem key={file.id} value={file.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <IconComponent className="w-4 h-4" />
+                        <div className="flex flex-col text-left">
+                          {file.title && (
+                            <span className="font-medium text-sm">{file.title}</span>
+                          )}
+                          <span className="text-xs text-slate-500 truncate">{file.originalName}</span>
+                        </div>
                       </div>
-                    </div>
-                  </SelectItem>
-                ))}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -153,11 +226,11 @@ export function FileComparisonUpload({
                 <Upload className="w-6 h-6 mx-auto mb-2 text-slate-400" />
                 <p className="text-sm text-slate-600">
                   {isDragActive
-                    ? 'Drop your improved image here'
-                    : 'Drop an image here, or click to select'}
+                    ? 'Drop your improved file here'
+                    : 'Drop your improved file here, or click to select'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
-                  Supports JPEG, PNG formats
+                  Supports images, audio, video, documents, and more
                 </p>
               </div>
             ) : (
