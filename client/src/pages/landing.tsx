@@ -90,7 +90,7 @@ export default function Landing() {
               Ready to Elevate Your Creative Work?
             </h2>
             <p className="text-xl text-slate-300 mb-8">
-              Join CreativeAI and get expert feedback powered by Google Gemini 2.0
+              Join Refyn and get expert feedback powered by Google Gemini 2.0
             </p>
             <Button 
               size="lg" 
@@ -103,6 +103,7 @@ export default function Landing() {
           </div>
         </section>
       </main>
+      <p>© Paul Vincent 2025</p>
     </div>
   );
 }
