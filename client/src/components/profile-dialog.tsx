@@ -152,23 +152,36 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
+      console.log('Starting profile update with data:', data);
       let profileImageUrl = data.profileImageUrl;
       
       // Upload image if a new file was selected
       if (imageFile) {
+        console.log('Uploading image file...');
         const formData = new FormData();
         formData.append('image', imageFile);
         
         const uploadResponse = await apiRequest('POST', '/api/upload-profile-image', formData);
         const uploadData = await uploadResponse.json();
         profileImageUrl = uploadData.url;
+        console.log('Image uploaded, URL:', profileImageUrl);
       }
 
+      console.log('Sending profile update request...');
       const response = await apiRequest('PUT', '/api/profile', {
         ...data,
         profileImageUrl,
       });
-      return response.json();
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Profile update failed:', errorData);
+        throw new Error(errorData.message || 'Profile update failed');
+      }
+      
+      const result = await response.json();
+      console.log('Profile update successful:', result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
@@ -223,6 +236,8 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
   };
 
   const onSubmit = (data: ProfileFormData) => {
+    console.log('Form submitted with data:', data);
+    console.log('Form errors:', form.formState.errors);
     updateProfileMutation.mutate(data);
   };
 

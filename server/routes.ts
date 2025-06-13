@@ -664,6 +664,8 @@ Provide only the title, no additional text.`;
       const userId = (req.user as any).claims.sub;
       const { firstName, lastName, artistStatement, interests, profileImageUrl } = req.body;
 
+      console.log('Profile update request:', { userId, firstName, lastName, artistStatement, interests: interests?.length, profileImageUrl });
+
       // Validate artist statement length
       if (artistStatement && artistStatement.length > 2500) { // ~500 words
         return res.status(400).json({ message: "Artist statement too long (max 500 words)" });
@@ -677,6 +679,7 @@ Provide only the title, no additional text.`;
         profileImageUrl,
       });
 
+      console.log('Profile updated successfully:', user.id);
       res.json(user);
     } catch (error) {
       console.error("Update profile error:", error);
