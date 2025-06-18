@@ -1,6 +1,7 @@
 import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, notes, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type Note, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery, type InsertNote } from "@shared/schema";
+import { microCourses } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, ilike } from "drizzle-orm";
+import { eq, and, or, ilike, desc } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -35,7 +36,7 @@ export interface IStorage {
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversationBySession(sessionId: string): Promise<Conversation | undefined>;
   getConversationsByUser(userId: string): Promise<Conversation[]>;
-  
+
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByConversation(conversationId: number): Promise<Message[]>;
@@ -44,11 +45,11 @@ export interface IStorage {
   createDiscoveryLocation(location: InsertDiscoveryLocation): Promise<DiscoveryLocation>;
   getDiscoveryLocationsByUser(userId: string): Promise<DiscoveryLocation[]>;
   getDiscoveryLocationsByArea(centerLat: string, centerLng: string, radius: number): Promise<DiscoveryLocation[]>;
-  
+
   createFavoriteLocation(favorite: InsertFavoriteLocation): Promise<FavoriteLocation>;
   getFavoriteLocationsByUser(userId: string): Promise<FavoriteLocation[]>;
   removeFavoriteLocation(userId: string, locationId: number): Promise<void>;
-  
+
   createSavedDiscovery(discovery: InsertSavedDiscovery): Promise<SavedDiscovery>;
   getSavedDiscoveriesByUser(userId: string): Promise<SavedDiscovery[]>;
   deleteSavedDiscovery(id: number): Promise<void>;
@@ -60,6 +61,25 @@ export interface IStorage {
   searchNotes(userId: string, searchTerm: string): Promise<Note[]>;
   updateNote(id: number, updateData: Partial<InsertNote>): Promise<Note>;
   deleteNote(id: number): Promise<void>;
+
+  // Micro Courses methods
+  createMicroCourse(data: {
+    userId: string;
+    title: string;
+    content: string;
+    status: 'generating' | 'ready' | 'failed';
+    sourceNotes: Array<{ title: string; content: string }>;
+  }): Promise<any>; // Replace any with the correct type
+
+  getMicroCoursesByUser(userId: string): Promise<any[]>; // Replace any with the correct type
+  getMicroCourse(id: number): Promise<any>; // Replace any with the correct type
+  updateMicroCourse(id: number, data: {
+    content?: string;
+    status?: 'generating' | 'ready' | 'failed';
+    completedAt?: Date;
+  }): Promise<any>; // Replace any with the correct type
+
+  deleteMicroCourse(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -110,7 +130,7 @@ export class DatabaseStorage implements IStorage {
   async incrementUserConversations(userId: string): Promise<User> {
     const currentUser = await this.getUser(userId);
     if (!currentUser) throw new Error('User not found');
-    
+
     const [user] = await db
       .update(users)
       .set({
@@ -364,6 +384,57 @@ export class DatabaseStorage implements IStorage {
 
   async deleteNote(id: number): Promise<void> {
     await db.delete(notes).where(eq(notes.id, id));
+  }
+
+  // Micro Courses methods
+  async createMicroCourse(data: {
+    userId: string;
+    title: string;
+    content: string;
+    status: 'generating' | 'ready' | 'failed';
+    sourceNotes: Array<{ title: string; content: string }>;
+  }) {
+    const [course] = await db.insert(microCourses).values({
+      userId: data.userId,
+      title: data.title,
+      content: data.content,
+      status: data.status,
+      sourceNotes: data.sourceNotes,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return course;
+  }
+
+  async getMicroCoursesByUser(userId: string) {
+    return await db.select().from(microCourses)
+      .where(eq(microCourses.userId, userId))
+      .orderBy(desc(microCourses.createdAt));
+  }
+
+  async getMicroCourse(id: number) {
+    const [course] = await db.select().from(microCourses)
+      .where(eq(microCourses.id, id));
+    return course;
+  }
+
+  async updateMicroCourse(id: number, data: {
+    content?: string;
+    status?: 'generating' | 'ready' | 'failed';
+    completedAt?: Date;
+  }) {
+    const [course] = await db.update(microCourses)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(microCourses.id, id))
+      .returning();
+    return course;
+  }
+
+  async deleteMicroCourse(id: number): Promise<void> {
+    await db.delete(microCourses).where(eq(microCourses.id, id));
   }
 }
 

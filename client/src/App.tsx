@@ -7,8 +7,9 @@ import { useAuth } from "@/hooks/useAuth";
 import Home from "@/pages/home";
 import Landing from "@/pages/landing";
 import Success from "@/pages/success";
-import CulturalDiscovery from "@/pages/cultural-discovery";
 import Notes from "@/pages/notes";
+import MicroCourses from "./pages/micro-courses";
+import CulturalDiscovery from "@/pages/cultural-discovery";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,8 +22,9 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Home} />
-          <Route path="/cultural-discovery" component={CulturalDiscovery} />
           <Route path="/notes" component={Notes} />
+          <Route path="/micro-courses" component={MicroCourses} />
+          <Route path="/cultural-discovery" component={CulturalDiscovery} />
           <Route path="/success" component={Success} />
         </>
       )}

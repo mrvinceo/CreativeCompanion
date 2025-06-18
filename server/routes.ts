@@ -1517,6 +1517,145 @@ If no valuable insights are found, return: {"items": []}`;
     }
   });
 
+  // Micro Courses API routes
+  // Generate micro course
+  app.post("/api/generate-micro-course", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { courseTitle, selectedNotes } = req.body;
+
+      if (!courseTitle || !selectedNotes || !Array.isArray(selectedNotes) || selectedNotes.length === 0) {
+        return res.status(400).json({ message: "Course title and selected notes are required" });
+      }
+
+      if (selectedNotes.length > 3) {
+        return res.status(400).json({ message: "Maximum 3 notes allowed for course generation" });
+      }
+
+      // Create course record with generating status
+      const courseData = {
+        userId,
+        title: courseTitle,
+        content: '', // Will be filled when generation completes
+        status: 'generating' as const,
+        sourceNotes: selectedNotes.map(note => ({
+          title: note.title,
+          content: note.content
+        }))
+      };
+
+      const course = await storage.createMicroCourse(courseData);
+
+      // Build the prompt for n8n workflow
+      const notesText = selectedNotes.map(note => 
+        `${note.title} - ${note.content}`
+      ).join('; ');
+
+      const prompt = `Create a short course with this title: ${courseTitle} and which covers the following topics and/or themes: ${notesText}`;
+
+      // Send request to n8n workflow (fire and forget)
+      fetch('https://n8n.oca.ac.uk/webhook/generate-course', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt })
+      }).then(async (response) => {
+        try {
+          if (response.ok) {
+            const data = await response.text(); // Assuming HTML response
+            // Update course with generated content
+            await storage.updateMicroCourse(course.id, {
+              content: data,
+              status: 'ready',
+              completedAt: new Date()
+            });
+            console.log(`Course ${course.id} generation completed successfully`);
+          } else {
+            console.error(`Course ${course.id} generation failed:`, response.status);
+            await storage.updateMicroCourse(course.id, {
+              status: 'failed'
+            });
+          }
+        } catch (error) {
+          console.error(`Course ${course.id} generation error:`, error);
+          await storage.updateMicroCourse(course.id, {
+            status: 'failed'
+          });
+        }
+      }).catch(async (error) => {
+        console.error(`Course ${course.id} request failed:`, error);
+        await storage.updateMicroCourse(course.id, {
+          status: 'failed'
+        });
+      });
+
+      res.json({ 
+        success: true,
+        course: {
+          id: course.id,
+          title: course.title,
+          status: course.status
+        }
+      });
+    } catch (error) {
+      console.error("Micro course generation error:", error);
+      res.status(500).json({ 
+        message: "Failed to start course generation",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get user's micro courses
+  app.get("/api/micro-courses", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const courses = await storage.getMicroCoursesByUser(userId);
+      res.json({ courses });
+    } catch (error) {
+      console.error("Get micro courses error:", error);
+      res.status(500).json({ message: "Failed to get micro courses" });
+    }
+  });
+
+  // Get specific micro course
+  app.get("/api/micro-courses/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { id } = req.params;
+      const course = await storage.getMicroCourse(parseInt(id));
+      
+      if (!course || course.userId !== userId) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      res.json({ course });
+    } catch (error) {
+      console.error("Get micro course error:", error);
+      res.status(500).json({ message: "Failed to get course" });
+    }
+  });
+
+  // Delete micro course
+  app.delete("/api/micro-courses/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { id } = req.params;
+      const course = await storage.getMicroCourse(parseInt(id));
+      
+      if (!course || course.userId !== userId) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      await storage.deleteMicroCourse(parseInt(id));
+      res.json({ message: "Course deleted successfully" });
+    } catch (error) {
+      console.error("Delete micro course error:", error);
+      res.status(500).json({ message: "Failed to delete course" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -102,17 +102,32 @@ export const savedDiscoveries = pgTable("saved_discoveries", {
 
 export const notes = pgTable("notes", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  conversationId: integer("conversation_id").references(() => conversations.id),
-  title: varchar("title").notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  conversationId: integer("conversation_id").references(() => conversations.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
-  link: text("link"),
-  type: varchar("type").notNull(), // 'ai_extracted', 'manual'
-  category: varchar("category"), // 'resource', 'advice', 'technique', 'general'
-  tags: text("tags").array(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  link: varchar("link", { length: 500 }),
+  type: varchar("type", { length: 50 }).notNull().default("manual"), // 'ai_extracted' | 'manual'
+  category: varchar("category", { length: 100 }), // 'technique' | 'advice' | 'resource' | 'general'
+  tags: jsonb("tags").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const microCourses = pgTable("micro_courses", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  status: varchar("status", { length: 50 }).notNull().default("generating"), // 'generating' | 'ready' | 'failed'
+  sourceNotes: jsonb("source_notes").$type<Array<{ title: string; content: string }>>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertNoteSchema = createInsertSchema(notes);
+export const insertMicroCourseSchema = createInsertSchema(microCourses);
 
 export const insertFileSchema = createInsertSchema(files).omit({
   id: true,
@@ -144,12 +159,6 @@ export const insertSavedDiscoverySchema = createInsertSchema(savedDiscoveries).o
   createdAt: true,
 });
 
-export const insertNoteSchema = createInsertSchema(notes).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -160,7 +169,6 @@ export type InsertDiscoveryLocation = z.infer<typeof insertDiscoveryLocationSche
 export type InsertFavoriteLocation = z.infer<typeof insertFavoriteLocationSchema>;
 export type InsertSavedDiscovery = z.infer<typeof insertSavedDiscoverySchema>;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
-
 export type File = typeof files.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;

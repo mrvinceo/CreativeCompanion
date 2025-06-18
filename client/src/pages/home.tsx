@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Palette, Lightbulb, LogOut, User, Plus, MapPin, BookOpen } from 'lucide-react';
+import { Palette, Lightbulb, LogOut, User, Plus, MapPin, BookOpen, Sparkles } from 'lucide-react';
 import { FileUpload } from '@/components/file-upload';
 import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';
@@ -22,7 +22,7 @@ import { useLocation } from 'wouter';
 export default function Home() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
-  
+
   // Session state that updates based on URL parameters
   const [sessionId, setSessionId] = useState(() => {
     const param = new URLSearchParams(window.location.search).get('session');
@@ -40,7 +40,7 @@ export default function Home() {
   useEffect(() => {
     const currentSessionParam = new URLSearchParams(window.location.search).get('session');
     console.log('Home page - detected session param:', currentSessionParam, 'current sessionId:', sessionId);
-    
+
     if (currentSessionParam && currentSessionParam !== sessionId) {
       console.log('Home page - updating sessionId to:', currentSessionParam);
       setSessionId(currentSessionParam);
@@ -57,7 +57,7 @@ export default function Home() {
       try {
         const response = await fetch(`/api/conversation/${sessionId}`);
         const data = await response.json();
-        
+
         if (data.conversation) {
           setConversation(data.conversation);
           setMessages(data.messages);
@@ -92,14 +92,14 @@ export default function Home() {
     try {
       const response = await fetch(`/api/conversation/${selectedSessionId}`);
       const data = await response.json();
-      
+
       if (data.conversation) {
         setSessionId(selectedSessionId);
         setConversation(data.conversation);
         setMessages(data.messages);
         setContextPrompt(data.conversation.contextPrompt || '');
         setMediaType((data.conversation.mediaType as MediaType) || '');
-        
+
         // Load files for this session
         const filesResponse = await fetch(`/api/files/${selectedSessionId}`);
         const filesData = await filesResponse.json();
@@ -221,6 +221,15 @@ export default function Home() {
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => setLocation('/micro-courses')}
+                  className="px-2 sm:px-3"
+                >
+                  <Sparkles className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Micro Courses</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={startNewConversation}
                   className="px-2 sm:px-3"
                 >
@@ -265,7 +274,7 @@ export default function Home() {
         {/* Upload Panel */}
         <div className="lg:w-1/2 space-y-6">
           <SubscriptionStatus />
-          
+
           <FileUpload 
             sessionId={sessionId}
             files={files}
@@ -280,7 +289,7 @@ export default function Home() {
               <Lightbulb className="w-5 h-5 text-warning mr-2" />
               Creative Medium & Context
             </h2>
-            
+
             <div className="space-y-4">
               <div>
                 <Label htmlFor="media-type" className="text-sm font-medium text-slate-700">
@@ -331,7 +340,7 @@ Examples:
                 {mediaType && <span>{MEDIA_TYPES[mediaType].label}</span>}
                 <span>Gemini 2.0</span>
               </div>
-              
+
               {!conversation && (
                 <Button 
                   onClick={submitForAnalysis}
