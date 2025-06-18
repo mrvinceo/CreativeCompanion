@@ -63,14 +63,14 @@ export default function MicroCourses() {
 
       <div className="container mx-auto p-4 sm:p-6 space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2">
             <h1 className="text-2xl sm:text-3xl font-bold">Micro Courses</h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground">
               AI-generated courses based on your notes and insights
             </p>
           </div>
-          <Button onClick={() => setIsGeneratorOpen(true)} className="shrink-0">
+          <Button onClick={() => setIsGeneratorOpen(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Generate Course
           </Button>
