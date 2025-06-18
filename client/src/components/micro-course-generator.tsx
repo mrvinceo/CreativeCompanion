@@ -176,7 +176,7 @@ export function MicroCourseGenerator({ isOpen, onClose }: MicroCourseGeneratorPr
           {selectedNotes.length < 3 && availableNotes.length > 0 && (
             <div className="flex flex-col space-y-2">
               <Label>Available Notes (select up to {3 - selectedNotes.length} more)</Label>
-              <ScrollArea className="border rounded-md max-h-[240px]">
+              <ScrollArea className="border rounded-md max-h-[180px]">
                 <div className="p-3 space-y-2">
                   {availableNotes.map((note) => (
                     <Card key={note.id} className="p-3 hover:bg-muted/50 transition-colors">
