@@ -114,7 +114,7 @@ export function MicroCourseGenerator({ isOpen, onClose }: MicroCourseGeneratorPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-yellow-500" />
@@ -125,7 +125,7 @@ export function MicroCourseGenerator({ isOpen, onClose }: MicroCourseGeneratorPr
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 flex flex-col space-y-6 min-h-0">
           {/* Course Title Input */}
           <div className="space-y-2">
             <Label htmlFor="course-title">Course Title</Label>
@@ -172,58 +172,60 @@ export function MicroCourseGenerator({ isOpen, onClose }: MicroCourseGeneratorPr
             </div>
           )}
 
-          {/* Available Notes */}
-          {isLoading ? (
-            <div className="text-center py-4">
-              <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
-              <p className="text-sm text-muted-foreground">Loading notes...</p>
-            </div>
-          ) : availableNotes.length > 0 ? (
-            <div className="space-y-2">
-              <Label>Available Notes (select up to {3 - selectedNotes.length} more)</Label>
-              <ScrollArea className="h-64 border rounded-md">
-                <div className="p-3 space-y-2">
-                  {availableNotes.map((note) => (
-                    <Card key={note.id} className="p-3 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={false}
-                          onCheckedChange={(checked) => handleNoteSelection(note, checked as boolean)}
-                          disabled={selectedNotes.length >= 3}
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">{note.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {note.content}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {note.category && (
-                              <Badge variant="secondary" className="text-xs">
-                                {note.category}
-                              </Badge>
-                            )}
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(note.createdAt).toLocaleDateString()}
-                            </span>
+          {/* Available Notes - Flexible height */}
+          <div className="flex-1 flex flex-col min-h-0">
+            {isLoading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Loading notes...</p>
+              </div>
+            ) : availableNotes.length > 0 ? (
+              <div className="flex flex-col space-y-2 flex-1 min-h-0">
+                <Label>Available Notes (select up to {3 - selectedNotes.length} more)</Label>
+                <ScrollArea className="flex-1 border rounded-md min-h-[200px]">
+                  <div className="p-3 space-y-2">
+                    {availableNotes.map((note) => (
+                      <Card key={note.id} className="p-3 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={false}
+                            onCheckedChange={(checked) => handleNoteSelection(note, checked as boolean)}
+                            disabled={selectedNotes.length >= 3}
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm">{note.title}</h4>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                              {note.content}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              {note.category && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {note.category}
+                                </Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(note.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <BookOpen className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">
-                No notes available. Create some notes first to generate a micro course.
-              </p>
-            </div>
-          )}
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">
+                  No notes available. Create some notes first to generate a micro course.
+                </p>
+              </div>
+            )}
+          </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-4">
+          {/* Action Buttons - Always visible at bottom */}
+          <div className="flex gap-2 pt-4 border-t bg-background">
             <Button
               onClick={handleGenerateCourse}
               disabled={generateCourseMutation.isPending || !courseTitle.trim() || selectedNotes.length === 0}
