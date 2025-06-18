@@ -1563,10 +1563,21 @@ If no valuable insights are found, return: {"items": []}`;
       }).then(async (response) => {
         try {
           if (response.ok) {
-            const data = await response.text(); // Assuming HTML response
-            // Update course with generated content
+            const data = await response.json(); // Parse JSON response
+            
+            // Extract htmlContent from the response
+            let htmlContent = '';
+            if (Array.isArray(data) && data.length > 0 && data[0].htmlContent) {
+              htmlContent = data[0].htmlContent;
+            } else if (data.htmlContent) {
+              htmlContent = data.htmlContent;
+            } else {
+              throw new Error('No htmlContent found in response');
+            }
+            
+            // Update course with generated HTML content
             await storage.updateMicroCourse(course.id, {
-              content: data,
+              content: htmlContent,
               status: 'ready',
               completedAt: new Date()
             });
