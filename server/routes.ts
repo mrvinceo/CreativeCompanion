@@ -633,6 +633,49 @@ Provide only the title, no additional text.`;
     }
   });
 
+  // Delete conversation
+  app.delete("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const conversationId = parseInt(req.params.id);
+      
+      // Get the conversation to verify ownership
+      const conversation = await storage.getConversationBySession("");
+      const conversations = await storage.getConversationsByUser(userId);
+      const targetConversation = conversations.find(c => c.id === conversationId);
+      
+      if (!targetConversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Get all files associated with this conversation to delete from object storage
+      const files = await storage.getFilesBySession(targetConversation.sessionId);
+      
+      // Delete files from object storage
+      for (const file of files) {
+        try {
+          await objectStorage.delete(file.filename);
+        } catch (error) {
+          console.error(`Failed to delete file ${file.filename} from object storage:`, error);
+          // Continue with deletion even if object storage cleanup fails
+        }
+      }
+      
+      // Delete files from database
+      for (const file of files) {
+        await storage.deleteFile(file.id);
+      }
+      
+      // Delete the conversation and related data
+      await storage.deleteConversation(conversationId);
+      
+      res.json({ message: "Conversation deleted successfully" });
+    } catch (error) {
+      console.error("Delete conversation error:", error);
+      res.status(500).json({ message: "Failed to delete conversation" });
+    }
+  });
+
   // Get user subscription info and usage
   app.get("/api/subscription", isAuthenticated, async (req: any, res) => {
     try {

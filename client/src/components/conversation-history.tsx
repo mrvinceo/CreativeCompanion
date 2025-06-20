@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, MessageSquare, FileText, Calendar, ChevronRight, Image, Music, Video, FileType } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { History, MessageSquare, FileText, Calendar, ChevronRight, Image, Music, Video, FileType, Trash2 } from 'lucide-react';
 import { MEDIA_TYPES } from '@/lib/media-types';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface ConversationHistoryItem {
   id: number;
@@ -29,11 +32,40 @@ interface ConversationHistoryProps {
 
 export function ConversationHistory({ onSelectConversation }: ConversationHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: conversationsData, isLoading } = useQuery<{ conversations: ConversationHistoryItem[] }>({
     queryKey: ['/api/conversations'],
     enabled: isOpen,
   });
+
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (conversationId: number) => {
+      return await apiRequest(`/api/conversations/${conversationId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
+      toast({
+        title: "Conversation deleted",
+        description: "The conversation and all associated files have been removed.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete conversation",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteConversation = (conversationId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteConversationMutation.mutate(conversationId);
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

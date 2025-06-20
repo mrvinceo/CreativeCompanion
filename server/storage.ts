@@ -36,6 +36,7 @@ export interface IStorage {
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversationBySession(sessionId: string): Promise<Conversation | undefined>;
   getConversationsByUser(userId: string): Promise<Conversation[]>;
+  deleteConversation(conversationId: number): Promise<void>;
 
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
@@ -224,6 +225,17 @@ export class DatabaseStorage implements IStorage {
 
   async getConversationsByUser(userId: string): Promise<Conversation[]> {
     return await db.select().from(conversations).where(eq(conversations.userId, userId));
+  }
+
+  async deleteConversation(conversationId: number): Promise<void> {
+    // Delete related notes first
+    await db.delete(notes).where(eq(notes.conversationId, conversationId));
+    
+    // Delete related messages
+    await db.delete(messages).where(eq(messages.conversationId, conversationId));
+    
+    // Delete the conversation
+    await db.delete(conversations).where(eq(conversations.id, conversationId));
   }
 
   // Message operations
