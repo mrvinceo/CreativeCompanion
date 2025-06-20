@@ -42,9 +42,19 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
 
   const deleteConversationMutation = useMutation({
     mutationFn: async (conversationId: number) => {
-      return await apiRequest(`/api/conversations/${conversationId}`, {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete conversation');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
@@ -206,7 +216,39 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
                       )}
                     </div>
                     
-                    <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0 ml-2" />
+                    <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this conversation? This will permanently remove all messages and associated files. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                              className="bg-red-600 hover:bg-red-700"
+                              disabled={deleteConversationMutation.isPending}
+                            >
+                              {deleteConversationMutation.isPending ? "Deleting..." : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
                   </div>
                 </Card>
               ))}
