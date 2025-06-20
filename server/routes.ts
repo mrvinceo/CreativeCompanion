@@ -585,20 +585,105 @@ Provide only the title, no additional text.`;
       });
       await storage.createMessage(userMessageData);
 
-      // Get conversation history
+      // Get conversation history and files
       const messages = await storage.getMessagesByConversation(conversation.id);
       const files = await storage.getFilesBySession(sessionId);
 
-      // Prepare context for Gemini
+      // Prepare context for Gemini with files included
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
       
       const conversationHistory = messages.map(msg => 
         `${msg.role === "user" ? "User" : "AI"}: ${msg.content}`
       ).join("\n\n");
 
-      const prompt = `Previous conversation about uploaded creative files:\n\n${conversationHistory}\n\nUser's new question: ${message}\n\nPlease provide a helpful response based on the previous analysis and files discussed.`;
+      // Build parts array including conversation history and all files
+      const parts: any[] = [
+        {
+          text: `Previous conversation about uploaded creative files:\n\n${conversationHistory}\n\nUser's new question: ${message}\n\nPlease provide a helpful response based on the previous analysis and the files shown below. Reference the specific content you can see/hear in the files when relevant to the user's question.`
+        }
+      ];
 
-      const result = await model.generateContent(prompt);
+      // Add all original files to the follow-up context so AI can reference them
+      for (const file of files) {
+        try {
+          // Try Object Storage first, fallback to local filesystem
+          let fileBuffer: Buffer;
+          const fileResult = await objectStorage.downloadAsBytes(file.filename);
+          if (fileResult.error) {
+            // Fallback to local filesystem for existing files
+            const fs = await import('fs/promises');
+            const filePath = path.join(process.cwd(), 'uploads', file.filename);
+            try {
+              fileBuffer = await fs.readFile(filePath);
+            } catch (localError) {
+              console.warn(`Could not find file ${file.filename} in storage or locally:`, localError);
+              continue;
+            }
+          } else {
+            fileBuffer = Array.isArray(fileResult.value) ? fileResult.value[0] : fileResult.value;
+          }
+          
+          if (file.mimeType.startsWith("image/")) {
+            // Validate image data before sending to API
+            if (!fileBuffer || fileBuffer.length === 0) {
+              console.warn(`Empty file buffer for follow-up ${file.filename}`);
+              continue;
+            }
+
+            console.log(`Adding image to follow-up: ${file.filename}, size: ${fileBuffer.length} bytes, mime: ${file.mimeType}`);
+            
+            parts.push({
+              inlineData: {
+                mimeType: file.mimeType,
+                data: fileBuffer.toString("base64")
+              }
+            });
+          }
+          // For videos, send directly to Gemini 2.0 which can process them natively
+          else if (file.mimeType.startsWith("video/")) {
+            console.log(`Adding video to follow-up: ${file.filename}, size: ${fileBuffer.length} bytes, mime: ${file.mimeType}`);
+            
+            parts.push({
+              inlineData: {
+                mimeType: file.mimeType,
+                data: fileBuffer.toString("base64")
+              }
+            });
+          }
+          // For audio files, send directly to Gemini 2.0 which can process them natively
+          else if (file.mimeType.startsWith("audio/")) {
+            console.log(`Adding audio to follow-up: ${file.filename}, size: ${fileBuffer.length} bytes, mime: ${file.mimeType}`);
+            
+            parts.push({
+              inlineData: {
+                mimeType: file.mimeType,
+                data: fileBuffer.toString("base64")
+              }
+            });
+          }
+          // For PDFs, send directly to Gemini 2.0 which can process them natively
+          else if (file.mimeType === "application/pdf") {
+            console.log(`Adding PDF to follow-up: ${file.filename}, size: ${fileBuffer.length} bytes`);
+            
+            parts.push({
+              inlineData: {
+                mimeType: file.mimeType,
+                data: fileBuffer.toString("base64")
+              }
+            });
+          }
+          // For other file types, include basic file info
+          else {
+            parts.push({
+              text: `File: ${file.originalName} (${file.mimeType}, ${Math.round(file.size / 1024)}KB)`
+            });
+          }
+        } catch (err) {
+          console.warn(`Could not read file ${file.filename} for follow-up:`, err);
+        }
+      }
+
+      const result = await model.generateContent(parts);
       const response = await result.response;
       const aiMessage = response.text();
 
