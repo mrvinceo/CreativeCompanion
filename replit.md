@@ -121,3 +121,4 @@ Preferred communication style: Simple, everyday language.
 
 Changelog:
 - June 18, 2025. Initial setup
+- June 20, 2025. Added conversation deletion functionality with confirmation dialog and complete cleanup of associated files from object storage
