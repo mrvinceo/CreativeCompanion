@@ -53,10 +53,12 @@ export function FileUpload({ sessionId, files, onFilesChange }: FileUploadProps)
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: Object.keys(SUPPORTED_FILE_TYPES).reduce((acc, key) => {
-      acc[key] = [];
-      return acc;
-    }, {} as Record<string, string[]>),
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
+      'audio/*': ['.mp3', '.wav', '.m4a', '.aac'],
+      'video/*': ['.mp4', '.mov', '.avi', '.webm'],
+      'application/pdf': ['.pdf']
+    },
     maxSize: MAX_FILE_SIZE,
     disabled: uploading,
   });
@@ -121,7 +123,7 @@ export function FileUpload({ sessionId, files, onFilesChange }: FileUploadProps)
               {uploading ? 'Uploading...' : 'Drop files here or click to upload'}
             </p>
             <p className="text-sm text-slate-500 mt-1">
-              Support: JPEG, PNG, MP3, MP4, PDF (Max 50MB each)
+              Support: Images, Audio, Video, PDF (Max 100MB each)
             </p>
           </div>
           {!uploading && (

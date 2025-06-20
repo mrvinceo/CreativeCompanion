@@ -27,10 +27,21 @@ export interface Conversation {
 
 export const SUPPORTED_FILE_TYPES = {
   'image/jpeg': 'JPEG',
-  'image/png': 'PNG', 
+  'image/jpg': 'JPEG',
+  'image/png': 'PNG',
+  'image/gif': 'GIF',
+  'image/webp': 'WebP',
   'audio/mpeg': 'MP3',
+  'audio/mp3': 'MP3',
+  'audio/wav': 'WAV',
+  'audio/m4a': 'M4A',
+  'audio/aac': 'AAC',
   'video/mp4': 'MP4',
+  'video/mov': 'MOV',
+  'video/avi': 'AVI',
+  'video/quicktime': 'QuickTime',
+  'video/webm': 'WebM',
   'application/pdf': 'PDF'
 };
 
-export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB

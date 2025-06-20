@@ -129,21 +129,32 @@ const MEDIA_SYSTEM_PROMPTS = {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: 100 * 1024 * 1024, // 100MB limit for video files
   },
   fileFilter: (req: any, file: any, cb: any) => {
     const allowedMimes = [
       "image/jpeg",
-      "image/png", 
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
       "audio/mpeg",
+      "audio/mp3",
+      "audio/wav",
+      "audio/m4a",
+      "audio/aac",
       "video/mp4",
+      "video/mov",
+      "video/avi",
+      "video/quicktime",
+      "video/webm",
       "application/pdf"
     ];
     
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type. Only JPEG, PNG, MP3, MP4, and PDF files are allowed."));
+      cb(new Error("Invalid file type. Supported formats: JPEG, PNG, GIF, WebP, MP3, WAV, M4A, AAC, MP4, MOV, AVI, WebM, and PDF."));
     }
   }
 });
@@ -470,6 +481,28 @@ Provide only the title, no additional text.`;
             }
 
             console.log(`Adding image to analysis: ${file.filename}, size: ${fileBuffer.length} bytes, mime: ${file.mimeType}`);
+            
+            parts.push({
+              inlineData: {
+                mimeType: file.mimeType,
+                data: fileBuffer.toString("base64")
+              }
+            });
+          }
+          // For videos, send directly to Gemini 2.0 which can process them natively
+          else if (file.mimeType.startsWith("video/")) {
+            console.log(`Adding video to analysis: ${file.filename}, size: ${fileBuffer.length} bytes, mime: ${file.mimeType}`);
+            
+            parts.push({
+              inlineData: {
+                mimeType: file.mimeType,
+                data: fileBuffer.toString("base64")
+              }
+            });
+          }
+          // For audio files, send directly to Gemini 2.0 which can process them natively
+          else if (file.mimeType.startsWith("audio/")) {
+            console.log(`Adding audio to analysis: ${file.filename}, size: ${fileBuffer.length} bytes, mime: ${file.mimeType}`);
             
             parts.push({
               inlineData: {
