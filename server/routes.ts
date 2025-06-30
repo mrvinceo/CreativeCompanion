@@ -678,7 +678,9 @@ Provide only the title, no additional text.`;
               continue;
             }
           } else {
-            fileBuffer = Array.isArray(fileResult.value) ? fileResult.value[0] : fileResult.value;
+            fileBuffer = Array.isArray(fileResult.value) 
+              ? fileResult.value[0] as Buffer 
+              : Buffer.from(fileResult.value as any);
           }
           
           if (file.mimeType.startsWith("image/")) {
@@ -1015,7 +1017,9 @@ Provide only the title, no additional text.`;
           return res.status(404).json({ message: "Original file not found" });
         }
       } else {
-        originalFileBuffer = Array.isArray(originalFileResult.value) ? originalFileResult.value[0] : originalFileResult.value;
+        originalFileBuffer = Array.isArray(originalFileResult.value) 
+          ? originalFileResult.value[0] as Buffer 
+          : Buffer.from(originalFileResult.value as any);
       }
 
       // Get new file
@@ -1029,7 +1033,9 @@ Provide only the title, no additional text.`;
           return res.status(404).json({ message: "New file not found" });
         }
       } else {
-        newFileBuffer = Array.isArray(newFileResult.value) ? newFileResult.value[0] : newFileResult.value;
+        newFileBuffer = Array.isArray(newFileResult.value) 
+          ? newFileResult.value[0] as Buffer 
+          : Buffer.from(newFileResult.value as any);
       }
 
       // Build conversation context
@@ -1290,7 +1296,7 @@ ${aiResponse}`;
           
           // Find user by stripe customer ID and update subscription
           try {
-            const users = await storage.getUserByStripeCustomerId?.(subscription.customer);
+            const users = await storage.getUserByStripeCustomerId(subscription.customer);
             if (users) {
               await storage.updateUserSubscription(users.id, {
                 subscriptionStatus: subscription.status,
@@ -1308,7 +1314,7 @@ ${aiResponse}`;
           
           // Find user by stripe customer ID and downgrade to free
           try {
-            const users = await storage.getUserByStripeCustomerId?.(subscription.customer);
+            const users = await storage.getUserByStripeCustomerId(subscription.customer);
             if (users) {
               await storage.updateUserSubscription(users.id, {
                 subscriptionStatus: 'canceled',
@@ -1327,7 +1333,7 @@ ${aiResponse}`;
           
           // Ensure subscription remains active
           try {
-            const users = await storage.getUserByStripeCustomerId?.(invoice.customer);
+            const users = await storage.getUserByStripeCustomerId(invoice.customer);
             if (users) {
               await storage.updateUserSubscription(users.id, {
                 subscriptionStatus: 'active',
@@ -1345,7 +1351,7 @@ ${aiResponse}`;
           
           // Mark subscription as past due
           try {
-            const users = await storage.getUserByStripeCustomerId?.(invoice.customer);
+            const users = await storage.getUserByStripeCustomerId(invoice.customer);
             if (users) {
               await storage.updateUserSubscription(users.id, {
                 subscriptionStatus: 'past_due',
