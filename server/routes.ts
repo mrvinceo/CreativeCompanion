@@ -254,18 +254,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const fileResult = await objectStorage.downloadAsBytes(file.filename);
         if (fileResult.error) {
-          // Fallback to local filesystem for existing files
-          const fs = await import('fs/promises');
-          const filePath = path.join(process.cwd(), 'uploads', file.filename);
-          try {
-            fileBuffer = await fs.readFile(filePath);
-          } catch (localError) {
-            console.error(`File not found in storage or locally: ${file.filename}`, localError);
-            return res.status(404).json({ message: "File content not found" });
-          }
+          console.error(`Object storage error for ${file.filename}:`, fileResult.error);
+          return res.status(404).json({ message: "File content not found" });
         } else {
-          // Object Storage returns the buffer data
-          fileBuffer = fileResult.value as any;
+          // Object Storage returns data - handle various formats
+          console.log(`Retrieved file ${file.filename}, type:`, typeof fileResult.value, 'isArray:', Array.isArray(fileResult.value));
+          if (Array.isArray(fileResult.value)) {
+            fileBuffer = fileResult.value[0] as Buffer;
+          } else {
+            fileBuffer = Buffer.from(fileResult.value as any);
+          }
         }
       } catch (error) {
         console.error("File retrieval error:", error);
@@ -401,18 +399,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let fileBuffer: Buffer;
             const fileResult = await objectStorage.downloadAsBytes(file.filename);
             if (fileResult.error) {
-              // Fallback to local filesystem for existing files
-              const fs = await import('fs/promises');
-              const filePath = path.join(process.cwd(), 'uploads', file.filename);
-              try {
-                fileBuffer = await fs.readFile(filePath);
-              } catch (localError) {
-                console.warn(`Could not find file ${file.filename} in storage or locally:`, localError);
-                continue;
-              }
+              console.warn(`Object storage error for ${file.filename}:`, fileResult.error);
+              continue;
             } else {
-              // Object Storage returns the buffer data
-              fileBuffer = fileResult.value as any;
+              // Object Storage returns data - handle various formats
+              if (Array.isArray(fileResult.value)) {
+                fileBuffer = fileResult.value[0] as Buffer;
+              } else {
+                fileBuffer = Buffer.from(fileResult.value as any);
+              }
             }
             
             const titlePrompt = `Analyze this image and create a short, descriptive title (maximum 5-8 words) that captures the main subject and essence of the work. Focus on what makes this image unique or interesting. Be specific but concise.
@@ -471,8 +466,12 @@ Provide only the title, no additional text.`;
               continue;
             }
           } else {
-            // Object Storage returns the buffer data - handle as Buffer
-            fileBuffer = fileResult.value as any;
+            // Object Storage returns data - handle various formats
+            if (Array.isArray(fileResult.value)) {
+              fileBuffer = fileResult.value[0] as Buffer;
+            } else {
+              fileBuffer = Buffer.from(fileResult.value as any);
+            }
           }
           
           if (file.mimeType.startsWith("image/")) {
