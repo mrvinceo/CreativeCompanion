@@ -73,6 +73,7 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
   const [imagePreview, setImagePreview] = useState<string>('');
   const [upgrading, setUpgrading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -147,6 +148,35 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
       });
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleSyncSubscription = async () => {
+    try {
+      setSyncing(true);
+      const response = await apiRequest('POST', '/api/sync-subscription');
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Subscription synced",
+          description: `Your ${data.plan} plan is now active.`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
+      } else {
+        toast({
+          title: "Sync completed",
+          description: data.message || "No changes detected.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Sync failed",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -431,6 +461,24 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
                   <div className="text-sm text-muted-foreground mb-4">
                     {subscription.conversationsThisMonth} / {subscription.conversationLimit} conversations used this month
                   </div>
+
+                  {/* Sync Subscription Button */}
+                  {(subscription.subscriptionPlan === 'standard' || subscription.subscriptionPlan === 'premium') && (
+                    <div className="mb-4">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={handleSyncSubscription}
+                        disabled={syncing}
+                        className="w-full"
+                      >
+                        {syncing ? 'Syncing...' : 'Sync Subscription Status'}
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1 text-center">
+                        Click if your subscription status isn't updated after payment
+                      </p>
+                    </div>
+                  )}
 
                   {/* Upgrade Options for Free Users (but not academic users) */}
                   {subscription.subscriptionPlan === 'free' && !subscription.isAcademic && (

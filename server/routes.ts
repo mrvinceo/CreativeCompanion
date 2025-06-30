@@ -867,13 +867,47 @@ Provide only the title, no additional text.`;
       const limit = getUsageLimit(user);
       const used = user.conversationsThisMonth || 0;
       
-      res.json({
-        subscriptionPlan: user.subscriptionPlan || 'free',
-        subscriptionStatus: user.subscriptionStatus,
-        conversationsThisMonth: used,
-        conversationLimit: limit,
-        isAcademic: user.email?.endsWith('oca.ac.uk') || false,
-      });
+      // If user has a Stripe subscription, verify status with Stripe
+      if (user.stripeSubscriptionId) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          
+          // Update local status if it differs from Stripe
+          if (subscription.status !== user.subscriptionStatus) {
+            console.log(`Syncing subscription status for user ${userId}: ${user.subscriptionStatus} -> ${subscription.status}`);
+            await storage.updateUserSubscription(userId, {
+              subscriptionStatus: subscription.status,
+            });
+          }
+          
+          res.json({
+            subscriptionPlan: user.subscriptionPlan || 'free',
+            subscriptionStatus: subscription.status,
+            conversationsThisMonth: used,
+            conversationLimit: limit,
+            isAcademic: user.email?.endsWith('oca.ac.uk') || false,
+            stripeStatus: subscription.status, // Include actual Stripe status for debugging
+          });
+        } catch (stripeError) {
+          console.error("Failed to verify Stripe subscription:", stripeError);
+          // Fall back to stored status
+          res.json({
+            subscriptionPlan: user.subscriptionPlan || 'free',
+            subscriptionStatus: user.subscriptionStatus,
+            conversationsThisMonth: used,
+            conversationLimit: limit,
+            isAcademic: user.email?.endsWith('oca.ac.uk') || false,
+          });
+        }
+      } else {
+        res.json({
+          subscriptionPlan: user.subscriptionPlan || 'free',
+          subscriptionStatus: user.subscriptionStatus,
+          conversationsThisMonth: used,
+          conversationLimit: limit,
+          isAcademic: user.email?.endsWith('oca.ac.uk') || false,
+        });
+      }
     } catch (error) {
       console.error("Get subscription error:", error);
       res.status(500).json({ message: "Failed to get subscription info" });
@@ -1199,6 +1233,7 @@ ${aiResponse}`;
         metadata: { userId, plan },
       });
 
+      console.log(`✓ Created checkout session for user ${userId}, plan ${plan}:`, session.id);
       res.json({ url: session.url });
     } catch (error: any) {
       console.error("Create subscription error:", error);
@@ -1209,6 +1244,80 @@ ${aiResponse}`;
       }
       
       res.status(500).json({ message: "Failed to create subscription" });
+    }
+  });
+
+  // Manual subscription sync - force sync with Stripe
+  app.post("/api/sync-subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log(`🔄 Manual sync requested for user ${userId}`);
+
+      if (user.stripeCustomerId) {
+        // Get all subscriptions for this customer
+        const subscriptions = await stripe.subscriptions.list({
+          customer: user.stripeCustomerId,
+          status: 'active',
+          limit: 1,
+        });
+
+        if (subscriptions.data.length > 0) {
+          const subscription = subscriptions.data[0];
+          console.log(`📄 Found active subscription for customer ${user.stripeCustomerId}:`, subscription.id);
+          
+          // Determine the plan from the price ID
+          let plan = 'free';
+          if (subscription.items.data.length > 0) {
+            const priceId = subscription.items.data[0].price.id;
+            if (priceId === process.env.STRIPE_STANDARD_PRICE_ID) {
+              plan = 'standard';
+            } else if (priceId === process.env.STRIPE_PREMIUM_PRICE_ID) {
+              plan = 'premium';
+            }
+          }
+
+          // Update the subscription
+          await storage.updateUserSubscription(userId, {
+            stripeSubscriptionId: subscription.id,
+            subscriptionStatus: subscription.status,
+            subscriptionPlan: plan,
+            billingPeriodStart: new Date((subscription as any).current_period_start * 1000),
+          });
+
+          console.log(`✅ Synced subscription for user ${userId}: ${plan} (${subscription.status})`);
+          
+          res.json({ 
+            success: true, 
+            plan, 
+            status: subscription.status,
+            message: "Subscription synced successfully" 
+          });
+        } else {
+          console.log(`❌ No active subscriptions found for customer ${user.stripeCustomerId}`);
+          res.json({ 
+            success: false, 
+            message: "No active subscription found" 
+          });
+        }
+      } else {
+        console.log(`❌ User ${userId} has no Stripe customer ID`);
+        res.json({ 
+          success: false, 
+          message: "No Stripe customer found" 
+        });
+      }
+    } catch (error) {
+      console.error("Subscription sync error:", error);
+      res.status(500).json({ 
+        message: "Failed to sync subscription", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 
@@ -1250,6 +1359,10 @@ ${aiResponse}`;
     const sig = req.headers['stripe-signature'];
     let event;
 
+    console.log('Received Stripe webhook request');
+    console.log('Webhook secret configured:', !!process.env.STRIPE_WEBHOOK_SECRET);
+    console.log('Request signature present:', !!sig);
+
     try {
       // Use raw body for webhook signature verification
       event = stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET || '');
@@ -1258,7 +1371,7 @@ ${aiResponse}`;
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    console.log(`Received webhook: ${event.type}`);
+    console.log(`✓ Webhook verified successfully: ${event.type}`);
 
     // Handle the event
     try {
@@ -1268,25 +1381,33 @@ ${aiResponse}`;
           const userId = session.metadata?.userId;
           const plan = session.metadata?.plan;
           
-          console.log(`Checkout completed for user ${userId}, plan ${plan}`, {
+          console.log(`🔔 Checkout completed for user ${userId}, plan ${plan}`, {
             customerId: session.customer,
-            subscriptionId: session.subscription
+            subscriptionId: session.subscription,
+            allMetadata: session.metadata
           });
           
           if (userId && plan) {
+            console.log(`📝 Updating subscription for user ${userId}...`);
+            
             // Reset monthly conversations when upgrading
             await storage.resetMonthlyConversations(userId);
+            console.log(`✓ Reset monthly conversations for user ${userId}`);
             
-            await storage.updateUserSubscription(userId, {
+            const updateResult = await storage.updateUserSubscription(userId, {
               stripeCustomerId: session.customer,
               stripeSubscriptionId: session.subscription,
               subscriptionStatus: 'active',
               subscriptionPlan: plan,
               billingPeriodStart: new Date(),
             });
-            console.log(`Successfully updated subscription for user ${userId} to ${plan}`);
+            console.log(`✅ Successfully updated subscription for user ${userId} to ${plan}`, updateResult);
+            
+            // Verify the update by getting the user again
+            const verifyUser = await storage.getUser(userId);
+            console.log(`🔍 Verification - User ${userId} subscription plan:`, verifyUser?.subscriptionPlan);
           } else {
-            console.error('Missing userId or plan in session metadata', { userId, plan });
+            console.error('❌ Missing userId or plan in session metadata', { userId, plan });
           }
           break;
         }

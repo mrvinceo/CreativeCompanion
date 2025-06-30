@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +18,9 @@ interface SubscriptionData {
 
 export function SubscriptionStatus() {
   const [upgrading, setUpgrading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: subscription, isLoading } = useQuery<SubscriptionData>({
     queryKey: ['/api/subscription'],
@@ -49,6 +51,35 @@ export function SubscriptionStatus() {
       });
     } finally {
       setUpgrading(false);
+    }
+  };
+
+  const handleSyncSubscription = async () => {
+    try {
+      setSyncing(true);
+      const response = await apiRequest('POST', '/api/sync-subscription');
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Subscription synced",
+          description: `Your ${data.plan} plan is now active.`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
+      } else {
+        toast({
+          title: "Sync completed",
+          description: data.message || "No changes detected.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Sync failed",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -112,6 +143,21 @@ export function SubscriptionStatus() {
           <p className="text-sm text-blue-800">
             <Crown className="w-4 h-4 inline mr-1" />
             You have academic access with 50 conversations per month.
+          </p>
+        </div>
+      ) : (subscription.subscriptionPlan === 'standard' || subscription.subscriptionPlan === 'premium') ? (
+        <div className="pt-2 border-t">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={handleSyncSubscription}
+            disabled={syncing}
+            className="w-full"
+          >
+            {syncing ? 'Syncing...' : 'Sync Subscription'}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-1 text-center">
+            Update if payment completed but plan hasn't changed
           </p>
         </div>
       ) : subscription.subscriptionPlan === 'free' && (
