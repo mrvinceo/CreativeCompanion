@@ -14,8 +14,9 @@ import Stripe from "stripe";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Replit Object Storage client
+// Initialize Replit Object Storage client with your bucket
 const objectStorage = new Client();
+const BUCKET_NAME = "UlyssesAppBucket";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
