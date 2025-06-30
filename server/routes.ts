@@ -264,8 +264,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(404).json({ message: "File content not found" });
           }
         } else {
-          // Object Storage returns a Result with value as array containing Buffer
-          fileBuffer = Array.isArray(fileResult.value) ? fileResult.value[0] : fileResult.value;
+          // Object Storage returns the buffer data
+          fileBuffer = fileResult.value as any;
         }
       } catch (error) {
         console.error("File retrieval error:", error);
@@ -411,7 +411,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 continue;
               }
             } else {
-              fileBuffer = Array.isArray(fileResult.value) ? fileResult.value[0] : fileResult.value;
+              // Object Storage returns the buffer data
+              fileBuffer = fileResult.value as any;
             }
             
             const titlePrompt = `Analyze this image and create a short, descriptive title (maximum 5-8 words) that captures the main subject and essence of the work. Focus on what makes this image unique or interesting. Be specific but concise.
@@ -470,7 +471,8 @@ Provide only the title, no additional text.`;
               continue;
             }
           } else {
-            fileBuffer = Array.isArray(fileResult.value) ? fileResult.value[0] : fileResult.value;
+            // Object Storage returns the buffer data - handle as Buffer
+            fileBuffer = fileResult.value as any;
           }
           
           if (file.mimeType.startsWith("image/")) {
