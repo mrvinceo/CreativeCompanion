@@ -202,8 +202,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate unique filename for Object Storage
         const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;
         
-        // Upload to Object Storage
-        await objectStorage.uploadFromBytes(uniqueFilename, file.buffer);
+        // Try Object Storage first, fallback to local filesystem
+        try {
+          const uploadResult = await objectStorage.uploadFromBytes(uniqueFilename, file.buffer);
+          if (uploadResult.error) {
+            console.warn(`Object storage upload failed for ${uniqueFilename}, using local storage:`, uploadResult.error);
+            // Fallback to local filesystem
+            const fs = await import('fs/promises');
+            const uploadsDir = path.join(process.cwd(), 'uploads');
+            await fs.mkdir(uploadsDir, { recursive: true });
+            await fs.writeFile(path.join(uploadsDir, uniqueFilename), file.buffer);
+            console.log(`Saved ${uniqueFilename} to local filesystem as fallback`);
+          } else {
+            console.log(`Successfully uploaded ${uniqueFilename} to object storage`);
+          }
+        } catch (uploadError) {
+          console.warn(`Both object storage and local storage failed for ${uniqueFilename}:`, uploadError);
+          // Try local filesystem as final fallback
+          try {
+            const fs = await import('fs/promises');
+            const uploadsDir = path.join(process.cwd(), 'uploads');
+            await fs.mkdir(uploadsDir, { recursive: true });
+            await fs.writeFile(path.join(uploadsDir, uniqueFilename), file.buffer);
+            console.log(`Final fallback: saved ${uniqueFilename} to local filesystem`);
+          } catch (localError) {
+            console.error(`All storage methods failed for ${uniqueFilename}:`, localError);
+            throw new Error(`Failed to store file ${uniqueFilename}`);
+          }
+        }
 
         const userId = (req.user as any)?.claims?.sub || null;
         const fileData = insertFileSchema.parse({
@@ -254,11 +280,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const fileResult = await objectStorage.downloadAsBytes(file.filename);
         if (fileResult.error) {
-          console.error(`Object storage error for ${file.filename}:`, fileResult.error);
-          return res.status(404).json({ message: "File content not found" });
+          console.log(`Object storage error for ${file.filename}, trying local filesystem:`, fileResult.error);
+          // Fallback to local filesystem
+          const fs = await import('fs/promises');
+          const filePath = path.join(process.cwd(), 'uploads', file.filename);
+          try {
+            fileBuffer = await fs.readFile(filePath);
+            console.log(`Retrieved ${file.filename} from local filesystem`);
+          } catch (localError) {
+            console.error(`File not found in storage or locally: ${file.filename}`, localError);
+            return res.status(404).json({ message: "File content not found" });
+          }
         } else {
           // Object Storage returns data - handle various formats
-          console.log(`Retrieved file ${file.filename}, type:`, typeof fileResult.value, 'isArray:', Array.isArray(fileResult.value));
+          console.log(`Retrieved file ${file.filename} from object storage`);
           if (Array.isArray(fileResult.value)) {
             fileBuffer = fileResult.value[0] as Buffer;
           } else {
@@ -266,8 +301,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       } catch (error) {
-        console.error("File retrieval error:", error);
-        return res.status(500).json({ message: "Failed to retrieve file" });
+        console.warn("Object storage retrieval failed, trying local filesystem:", error);
+        // Final fallback to local filesystem
+        try {
+          const fs = await import('fs/promises');
+          const filePath = path.join(process.cwd(), 'uploads', file.filename);
+          fileBuffer = await fs.readFile(filePath);
+          console.log(`Retrieved ${file.filename} from local filesystem as fallback`);
+        } catch (localError) {
+          console.error("All retrieval methods failed:", localError);
+          return res.status(500).json({ message: "Failed to retrieve file" });
+        }
       }
       
       res.setHeader('Content-Type', file.mimeType);
@@ -399,8 +443,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let fileBuffer: Buffer;
             const fileResult = await objectStorage.downloadAsBytes(file.filename);
             if (fileResult.error) {
-              console.warn(`Object storage error for ${file.filename}:`, fileResult.error);
-              continue;
+              console.log(`Object storage error for ${file.filename}, trying local filesystem:`, fileResult.error);
+              // Fallback to local filesystem
+              const fs = await import('fs/promises');
+              const filePath = path.join(process.cwd(), 'uploads', file.filename);
+              try {
+                fileBuffer = await fs.readFile(filePath);
+                console.log(`Retrieved ${file.filename} from local filesystem for title generation`);
+              } catch (localError) {
+                console.warn(`Could not find file ${file.filename} in storage or locally:`, localError);
+                continue;
+              }
             } else {
               // Object Storage returns data - handle various formats
               if (Array.isArray(fileResult.value)) {
@@ -456,17 +509,20 @@ Provide only the title, no additional text.`;
           let fileBuffer: Buffer;
           const fileResult = await objectStorage.downloadAsBytes(file.filename);
           if (fileResult.error) {
-            // Fallback to local filesystem for existing files
+            console.log(`Object storage error for ${file.filename}, trying local filesystem:`, fileResult.error);
+            // Fallback to local filesystem
             const fs = await import('fs/promises');
             const filePath = path.join(process.cwd(), 'uploads', file.filename);
             try {
               fileBuffer = await fs.readFile(filePath);
+              console.log(`Retrieved ${file.filename} from local filesystem for AI analysis`);
             } catch (localError) {
               console.warn(`Could not find file ${file.filename} in storage or locally:`, localError);
               continue;
             }
           } else {
             // Object Storage returns data - handle various formats
+            console.log(`Retrieved ${file.filename} from object storage for AI analysis`);
             if (Array.isArray(fileResult.value)) {
               fileBuffer = fileResult.value[0] as Buffer;
             } else {
