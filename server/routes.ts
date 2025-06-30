@@ -1239,12 +1239,13 @@ ${aiResponse}`;
     }
   });
 
-  // Handle Stripe webhooks
-  app.post("/api/stripe-webhook", async (req, res) => {
+  // Handle Stripe webhooks - needs raw body for signature verification
+  app.post("/api/stripe-webhook", express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
 
     try {
+      // Use raw body for webhook signature verification
       event = stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET || '');
     } catch (err: any) {
       console.log(`Webhook signature verification failed.`, err.message);
@@ -1261,9 +1262,15 @@ ${aiResponse}`;
           const userId = session.metadata?.userId;
           const plan = session.metadata?.plan;
           
-          console.log(`Checkout completed for user ${userId}, plan ${plan}`);
+          console.log(`Checkout completed for user ${userId}, plan ${plan}`, {
+            customerId: session.customer,
+            subscriptionId: session.subscription
+          });
           
           if (userId && plan) {
+            // Reset monthly conversations when upgrading
+            await storage.resetMonthlyConversations(userId);
+            
             await storage.updateUserSubscription(userId, {
               stripeCustomerId: session.customer,
               stripeSubscriptionId: session.subscription,
@@ -1271,22 +1278,83 @@ ${aiResponse}`;
               subscriptionPlan: plan,
               billingPeriodStart: new Date(),
             });
-            console.log(`Updated subscription for user ${userId}`);
+            console.log(`Successfully updated subscription for user ${userId} to ${plan}`);
           } else {
-            console.error('Missing userId or plan in session metadata');
+            console.error('Missing userId or plan in session metadata', { userId, plan });
           }
           break;
         }
         case 'customer.subscription.updated': {
           const subscription = event.data.object as any;
           console.log(`Subscription updated: ${subscription.id}, status: ${subscription.status}`);
-          // Would need getUserByStripeCustomerId method to implement this
+          
+          // Find user by stripe customer ID and update subscription
+          try {
+            const users = await storage.getUserByStripeCustomerId?.(subscription.customer);
+            if (users) {
+              await storage.updateUserSubscription(users.id, {
+                subscriptionStatus: subscription.status,
+              });
+              console.log(`Updated subscription status for user ${users.id} to ${subscription.status}`);
+            }
+          } catch (error) {
+            console.warn('Could not find user by stripe customer ID:', subscription.customer);
+          }
           break;
         }
         case 'customer.subscription.deleted': {
           const subscription = event.data.object as any;
           console.log(`Subscription deleted: ${subscription.id}`);
-          // Would need getUserByStripeCustomerId method to implement this
+          
+          // Find user by stripe customer ID and downgrade to free
+          try {
+            const users = await storage.getUserByStripeCustomerId?.(subscription.customer);
+            if (users) {
+              await storage.updateUserSubscription(users.id, {
+                subscriptionStatus: 'canceled',
+                subscriptionPlan: 'free',
+              });
+              console.log(`Downgraded user ${users.id} to free plan`);
+            }
+          } catch (error) {
+            console.warn('Could not find user by stripe customer ID:', subscription.customer);
+          }
+          break;
+        }
+        case 'invoice.payment_succeeded': {
+          const invoice = event.data.object as any;
+          console.log(`Payment succeeded for subscription: ${invoice.subscription}`);
+          
+          // Ensure subscription remains active
+          try {
+            const users = await storage.getUserByStripeCustomerId?.(invoice.customer);
+            if (users) {
+              await storage.updateUserSubscription(users.id, {
+                subscriptionStatus: 'active',
+              });
+              console.log(`Confirmed active subscription for user ${users.id}`);
+            }
+          } catch (error) {
+            console.warn('Could not find user by stripe customer ID:', invoice.customer);
+          }
+          break;
+        }
+        case 'invoice.payment_failed': {
+          const invoice = event.data.object as any;
+          console.log(`Payment failed for subscription: ${invoice.subscription}`);
+          
+          // Mark subscription as past due
+          try {
+            const users = await storage.getUserByStripeCustomerId?.(invoice.customer);
+            if (users) {
+              await storage.updateUserSubscription(users.id, {
+                subscriptionStatus: 'past_due',
+              });
+              console.log(`Marked subscription as past due for user ${users.id}`);
+            }
+          } catch (error) {
+            console.warn('Could not find user by stripe customer ID:', invoice.customer);
+          }
           break;
         }
         default:

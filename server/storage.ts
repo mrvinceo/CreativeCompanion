@@ -81,6 +81,8 @@ export interface IStorage {
   }): Promise<any>; // Replace any with the correct type
 
   deleteMicroCourse(id: number): Promise<void>;
+
+  getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -230,10 +232,10 @@ export class DatabaseStorage implements IStorage {
   async deleteConversation(conversationId: number): Promise<void> {
     // Delete related notes first
     await db.delete(notes).where(eq(notes.conversationId, conversationId));
-    
+
     // Delete related messages
     await db.delete(messages).where(eq(messages.conversationId, conversationId));
-    
+
     // Delete the conversation
     await db.delete(conversations).where(eq(conversations.id, conversationId));
   }
@@ -447,6 +449,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMicroCourse(id: number): Promise<void> {
     await db.delete(microCourses).where(eq(microCourses.id, id));
+  }
+
+  async getUserByStripeCustomerId(stripeCustomerId: string) {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.stripeCustomerId, stripeCustomerId));
+
+    return user ? user[0] : null;
   }
 }
 
