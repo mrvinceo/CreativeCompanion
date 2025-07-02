@@ -1,0 +1,132 @@
+import { Button } from '@/components/ui/button';
+import { RefynLogo } from '@/components/refyn-logo';
+import { ProfileDialog } from '@/components/profile-dialog';
+import { User, LogOut, ListRestart, MapPin, CirclePlus, BookOpen, GraduationCap } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from 'wouter';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+interface MobileLayoutProps {
+  children: React.ReactNode;
+  onNewConversation?: () => void;
+  onSelectConversation?: (sessionId: string) => void;
+}
+
+export function MobileLayout({ children, onNewConversation, onSelectConversation }: MobileLayoutProps) {
+  const { user } = useAuth();
+  const [location, setLocation] = useLocation();
+  const isMobile = useIsMobile();
+
+  if (!user || !isMobile) {
+    return <>{children}</>;
+  }
+
+  const navigationItems = [
+    {
+      id: 'history',
+      icon: ListRestart,
+      label: 'History',
+      action: () => {
+        // TODO: Implement conversation history
+      }
+    },
+    {
+      id: 'discover',
+      icon: MapPin,
+      label: 'Discover',
+      action: () => setLocation('/cultural-discovery')
+    },
+    {
+      id: 'new',
+      icon: CirclePlus,
+      label: 'New',
+      action: onNewConversation || (() => setLocation('/'))
+    },
+    {
+      id: 'notes',
+      icon: BookOpen,
+      label: 'Notes',
+      action: () => setLocation('/notes')
+    },
+    {
+      id: 'courses',
+      icon: GraduationCap,
+      label: 'Courses',
+      action: () => setLocation('/micro-courses')
+    }
+  ];
+
+  const getActiveId = () => {
+    if (location === '/') return 'new';
+    if (location.startsWith('/cultural-discovery')) return 'discover';
+    if (location.startsWith('/notes')) return 'notes';
+    if (location.startsWith('/micro-courses')) return 'courses';
+    return '';
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-card border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <RefynLogo size={32} showTitle={false} />
+          <div className="flex items-center space-x-2">
+            <ProfileDialog>
+              <Button variant="ghost" size="sm" className="p-2">
+                {user.profileImageUrl ? (
+                  <img 
+                    src={user.profileImageUrl} 
+                    alt="Profile" 
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-6 h-6 bg-slate-300 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-slate-600" />
+                  </div>
+                )}
+              </Button>
+            </ProfileDialog>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => window.location.href = '/api/logout'}
+              className="p-2"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content with padding for sticky footer */}
+      <main className="flex-1 pb-20">
+        {children}
+      </main>
+
+      {/* Sticky Footer Navigation */}
+      <nav className="sticky bottom-0 z-50 bg-card border-t border-border px-4 py-2">
+        <div className="flex items-center justify-around">
+          {navigationItems.map((item) => {
+            const IconComponent = item.icon;
+            const isActive = getActiveId() === item.id;
+            
+            return (
+              <Button
+                key={item.id}
+                variant="ghost"
+                size="sm"
+                onClick={item.action}
+                className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${
+                  isActive ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                <IconComponent className="w-5 h-5 mb-1" />
+                <span className="text-xs font-medium">{item.label}</span>
+              </Button>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
+  );
+}

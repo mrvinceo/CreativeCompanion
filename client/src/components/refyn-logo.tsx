@@ -1,4 +1,4 @@
-import refynLogoAsset from "@assets/Asset 3@4x_1749816721142.png";
+import refynLogoAsset from "@assets/Asset 6@4x_1751463951553.png";
 
 interface RefynLogoProps {
   size?: number;

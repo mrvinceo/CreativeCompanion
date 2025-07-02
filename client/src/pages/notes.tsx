@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Search, Plus, ExternalLink, Edit, Trash2, BookOpen, Lightbulb, Palette, Globe, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { RefynLogo } from "@/components/refyn-logo";
+import { MobileLayout } from "@/components/mobile-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Note {
   id: number;
@@ -39,6 +41,7 @@ const categoryIcons = {
 export default function Notes() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -166,23 +169,24 @@ export default function Notes() {
     general: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
   };
 
-  return (
+  const pageContent = (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <RefynLogo size={32} showTitle={false} className="sm:hidden" />
-          <RefynLogo size={36} showTitle={true} className="hidden sm:flex" />
-          <Button
-            variant="ghost"
-            onClick={() => setLocation('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Button>
-        </div>
-      </header>
+      {/* Header - only show on desktop */}
+      {!isMobile && (
+        <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <RefynLogo size={36} showTitle={true} />
+            <Button
+              variant="ghost"
+              onClick={() => setLocation('/')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Button>
+          </div>
+        </header>
+      )}
       
       <div className="container mx-auto p-4 sm:p-6 space-y-6">
         <div className="space-y-4">
@@ -490,8 +494,14 @@ export default function Notes() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </div>
-    </div>
   );
+
+  if (isMobile) {
+    return <MobileLayout>{pageContent}</MobileLayout>;
+  }
+
+  return pageContent;
 }

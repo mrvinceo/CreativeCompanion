@@ -12,16 +12,19 @@ import { ConversationHistory } from '@/components/conversation-history';
 import { SubscriptionStatus } from '@/components/subscription-status';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { RefynLogo } from '@/components/refyn-logo';
+import { MobileLayout } from '@/components/mobile-layout';
 import { type UploadedFile, type ChatMessage, type Conversation } from '@/lib/types';
 import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Home() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
+  const isMobile = useIsMobile();
 
   // Session state that updates based on URL parameters
   const [sessionId, setSessionId] = useState(() => {
@@ -189,88 +192,84 @@ export default function Home() {
     }
   };
 
-  return (
+  const content = (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <RefynLogo size={32} showTitle={false} className="sm:hidden" />
-          <RefynLogo size={36} showTitle={true} className="hidden sm:flex" />
-          <div className="flex items-center space-x-1 sm:space-x-3">
-            {user && (
-              <>
-                <ConversationHistory onSelectConversation={handleSelectConversation} />
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setLocation('/cultural-discovery')}
-                  className="px-2 sm:px-3"
-                >
-                  <MapPin className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Discover</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setLocation('/notes')}
-                  className="px-2 sm:px-3"
-                >
-                  <BookOpen className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Notes</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setLocation('/micro-courses')}
-                  className="px-2 sm:px-3"
-                >
-                  <Sparkles className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Micro Courses</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={startNewConversation}
-                  className="px-2 sm:px-3"
-                >
-                  <Plus className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">New</span>
-                </Button>
-                <ProfileDialog>
-                  <Button variant="ghost" size="sm" className="px-2 sm:px-3 flex items-center gap-1 sm:gap-2">
-                    {user.profileImageUrl ? (
-                      <img 
-                        src={user.profileImageUrl} 
-                        alt="Profile" 
-                        className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-slate-300 rounded-full flex items-center justify-center">
-                        <User className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
-                      </div>
-                    )}
-                    <span className="hidden sm:inline text-xs sm:text-sm">
-                      {user.firstName || user.email?.split('@')[0] || 'Profile'}
-                    </span>
+      {/* Header - only show on desktop */}
+      {!isMobile && (
+        <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <RefynLogo size={36} showTitle={true} />
+            <div className="flex items-center space-x-3">
+              {user && (
+                <>
+                  <ConversationHistory onSelectConversation={handleSelectConversation} />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setLocation('/cultural-discovery')}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    <span>Discover</span>
                   </Button>
-                </ProfileDialog>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => window.location.href = '/api/logout'}
-                  className="px-2 sm:px-3"
-                >
-                  <LogOut className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Sign Out</span>
-                </Button>
-              </>
-            )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setLocation('/notes')}
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    <span>Notes</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setLocation('/micro-courses')}
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    <span>Micro Courses</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={startNewConversation}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    <span>New</span>
+                  </Button>
+                  <ProfileDialog>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                      {user.profileImageUrl ? (
+                        <img 
+                          src={user.profileImageUrl} 
+                          alt="Profile" 
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 bg-slate-300 rounded-full flex items-center justify-center">
+                          <User className="w-4 h-4 text-slate-600" />
+                        </div>
+                      )}
+                      <span className="text-sm">
+                        {user.firstName || user.email?.split('@')[0] || 'Profile'}
+                      </span>
+                    </Button>
+                  </ProfileDialog>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => window.location.href = '/api/logout'}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    <span>Sign Out</span>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-6 gap-6">
+      <main className={`flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-6 gap-6 ${isMobile ? '' : ''}`}>
         {/* Upload Panel */}
         <div className="lg:w-1/2 space-y-6">
           <SubscriptionStatus />
@@ -382,4 +381,17 @@ Examples:
       )}
     </div>
   );
+
+  if (isMobile) {
+    return (
+      <MobileLayout 
+        onNewConversation={startNewConversation}
+        onSelectConversation={handleSelectConversation}
+      >
+        {content}
+      </MobileLayout>
+    );
+  }
+
+  return content;
 }
