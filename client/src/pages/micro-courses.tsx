@@ -117,16 +117,16 @@ export default function MicroCourses() {
           </div>
         </header>
 
-        <div className="p-6">
-          <div className="mb-6">
+        <div className="w-full">
+          <div className="px-4 py-6 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className="w-5 h-5 text-primary" />
               <Badge variant="secondary" className="text-xs">
                 Micro Course
               </Badge>
             </div>
-            <h1 className="text-3xl font-bold mb-2">{selectedCourse.title}</h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{selectedCourse.title}</h1>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {new Date(selectedCourse.createdAt).toLocaleDateString()}
@@ -140,8 +140,8 @@ export default function MicroCourses() {
             </div>
           </div>
 
-          <div className="prose prose-lg max-w-none dark:prose-invert">
-            <div dangerouslySetInnerHTML={{ __html: selectedCourse.content }} />
+          <div className="w-full overflow-x-auto">
+            <div className="prose prose-lg max-w-none dark:prose-invert px-4" dangerouslySetInnerHTML={{ __html: selectedCourse.content }} />
           </div>
 
           {selectedCourse.sourceNotes && selectedCourse.sourceNotes.length > 0 && (
@@ -161,53 +161,13 @@ export default function MicroCourses() {
           )}
         </div>
 
-        {/* Mobile Footer Navigation */}
-        {isMobile && (
-          <nav className="sticky bottom-0 z-50 bg-card py-4 border-t border-border">
-            <div className="flex items-center justify-around">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation('/')}
-                className="flex flex-col items-center justify-center p-2 min-w-0 flex-1 text-muted-foreground"
-              >
-                <CirclePlus className="w-5 h-5 mb-1" />
-                <span className="text-xs font-medium">New</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation('/notes')}
-                className="flex flex-col items-center justify-center p-2 min-w-0 flex-1 text-muted-foreground"
-              >
-                <BookOpen className="w-5 h-5 mb-1" />
-                <span className="text-xs font-medium">Notes</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation('/micro-courses')}
-                className="flex flex-col items-center justify-center p-2 min-w-0 flex-1 text-primary"
-              >
-                <GraduationCap className="w-5 h-5 mb-1" />
-                <span className="text-xs font-medium">Courses</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation('/cultural-discovery')}
-                className="flex flex-col items-center justify-center p-2 min-w-0 flex-1 text-muted-foreground"
-              >
-                <MapPin className="w-5 h-5 mb-1" />
-                <span className="text-xs font-medium">Discover</span>
-              </Button>
-            </div>
-          </nav>
-        )}
+
       </div>
     );
 
-    // For course viewing, return content directly without mobile layout wrapper to allow full width
+    if (isMobile) {
+      return <MobileLayout>{coursePageContent}</MobileLayout>;
+    }
     return coursePageContent;
   }
 
