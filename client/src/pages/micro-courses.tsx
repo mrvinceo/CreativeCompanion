@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, BookOpen, Calendar, Clock, ExternalLink, Plus } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Clock, ExternalLink, Plus, CirclePlus, GraduationCap, MapPin } from "lucide-react";
 import { useLocation } from "wouter";
 import { RefynLogo } from "@/components/refyn-logo";
 import { MicroCourseGenerator } from "@/components/micro-course-generator";
@@ -117,7 +117,7 @@ export default function MicroCourses() {
           </div>
         </header>
 
-        <div className="container mx-auto p-6">
+        <div className="p-6">
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className="w-5 h-5 text-primary" />
@@ -160,6 +160,50 @@ export default function MicroCourses() {
             </div>
           )}
         </div>
+
+        {/* Mobile Footer Navigation */}
+        {isMobile && (
+          <nav className="sticky bottom-0 z-50 bg-card py-4 border-t border-border">
+            <div className="flex items-center justify-around">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation('/')}
+                className="flex flex-col items-center justify-center p-2 min-w-0 flex-1 text-muted-foreground"
+              >
+                <CirclePlus className="w-5 h-5 mb-1" />
+                <span className="text-xs font-medium">New</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation('/notes')}
+                className="flex flex-col items-center justify-center p-2 min-w-0 flex-1 text-muted-foreground"
+              >
+                <BookOpen className="w-5 h-5 mb-1" />
+                <span className="text-xs font-medium">Notes</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation('/micro-courses')}
+                className="flex flex-col items-center justify-center p-2 min-w-0 flex-1 text-primary"
+              >
+                <GraduationCap className="w-5 h-5 mb-1" />
+                <span className="text-xs font-medium">Courses</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation('/cultural-discovery')}
+                className="flex flex-col items-center justify-center p-2 min-w-0 flex-1 text-muted-foreground"
+              >
+                <MapPin className="w-5 h-5 mb-1" />
+                <span className="text-xs font-medium">Discover</span>
+              </Button>
+            </div>
+          </nav>
+        )}
       </div>
     );
 
