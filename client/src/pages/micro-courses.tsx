@@ -52,7 +52,7 @@ export default function MicroCourses() {
       {!isMobile && (
         <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <RefynLogo size={36} showTitle={true} />
+            <RefynLogo size={64} showTitle={true} />
             <Button
               variant="ghost"
               onClick={() => setLocation('/')}

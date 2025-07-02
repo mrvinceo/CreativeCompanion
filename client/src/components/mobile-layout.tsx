@@ -27,9 +27,7 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
       id: 'history',
       icon: ListRestart,
       label: 'History',
-      action: () => {
-        // TODO: Implement conversation history
-      }
+      action: () => {}
     },
     {
       id: 'discover',
@@ -68,10 +66,10 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border px-4 py-3">
+      <header className="sticky top-0 z-50 h-20 bg-card px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="w-10"></div> {/* Spacer for centering */}
-          <RefynLogo size={32} showTitle={false} />
+          <RefynLogo size={64} showTitle={false} />
           <div className="flex items-center space-x-2">
             <ProfileDialog>
               <Button variant="ghost" size="sm" className="p-2">
@@ -106,17 +104,22 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
       </main>
 
       {/* Sticky Footer Navigation */}
-      <nav className="sticky bottom-0 z-50 bg-card border-t border-border px-4 py-2">
+      <nav className="sticky bottom-0 z-50 bg-card py-4">
         <div className="flex items-center justify-around">
           {navigationItems.map((item) => {
             const IconComponent = item.icon;
             const isActive = getActiveId() === item.id;
             
-            if (item.id === 'history' && onSelectConversation) {
+            if (item.id === 'history') {
               return (
                 <MobileConversationHistory
                   key={item.id}
-                  onSelectConversation={onSelectConversation}
+                  onSelectConversation={(sessionId: string) => {
+                    setLocation(`/?session=${sessionId}`);
+                    if (onSelectConversation) {
+                      onSelectConversation(sessionId);
+                    }
+                  }}
                 >
                   <Button
                     variant="ghost"

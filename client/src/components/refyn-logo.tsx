@@ -8,7 +8,7 @@ interface RefynLogoProps {
 }
 
 export function RefynLogo({ 
-  size = 32, 
+  size = 64, 
   showTitle = true, 
   showSubtitle = false, 
   className = "" 
@@ -23,7 +23,7 @@ export function RefynLogo({
       />
       {showTitle && (
         <div className="flex flex-col">
-          <span className="text-2xl title text-foreground">Refyn</span>
+          <span className="text-2xl title text-foreground"></span>
           {showSubtitle && (
             <span className="text-xs text-muted-foreground uppercase tracking-wider">Your art: Refynd 🙄</span>
           )}
