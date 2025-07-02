@@ -39,8 +39,16 @@ export default function MicroCourses() {
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('course');
     setCourseId(id);
-    console.log('URL changed - Window search:', window.location.search, 'Course ID:', id);
   }, [location]);
+
+  // Also update immediately when window location changes (for programmatic navigation)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('course');
+    if (id !== courseId) {
+      setCourseId(id);
+    }
+  });
   
   const isViewingCourse = !!courseId;
 
@@ -61,21 +69,16 @@ export default function MicroCourses() {
     enabled: !!courseId,
   });
   
-  console.log('Course query - courseId:', courseId, 'isLoading:', isCourseLoading, 'error:', courseError, 'data:', courseData);
-
   const courses = coursesData?.courses || [];
   // Handle the case where the API returns the wrong format
   const selectedCourse = courseData?.course || courseData?.courses?.[0];
-  
-  console.log('Courses data:', courses);
-  console.log('Selected course data:', selectedCourse);
 
   const openCourseViewer = (course: MicroCourse) => {
-    console.log('Opening course:', course.id, 'Status:', course.status);
     if (course.status === 'ready') {
-      setLocation(`/micro-courses?course=${course.id}`);
-    } else {
-      console.log('Course not ready, status:', course.status);
+      // Use window.history to navigate with query params and manually update state
+      const newUrl = `/micro-courses?course=${course.id}`;
+      window.history.pushState({}, '', newUrl);
+      setCourseId(course.id.toString());
     }
   };
 
@@ -100,7 +103,7 @@ export default function MicroCourses() {
           </header>
         )}
 
-        <div className="container mx-auto p-6 max-w-4xl">
+        <div className="container mx-auto p-6">
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className="w-5 h-5 text-primary" />
