@@ -37,6 +37,8 @@ export default function MicroCourses() {
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const courseId = urlParams.get('course');
   const isViewingCourse = !!courseId;
+  
+  console.log('Micro Courses - URL:', location, 'Course ID:', courseId, 'Is viewing course:', isViewingCourse);
 
   // Fetch user's micro courses
   const { data: coursesData, isLoading } = useQuery<{ courses: MicroCourse[] }>({
@@ -52,10 +54,16 @@ export default function MicroCourses() {
 
   const courses = coursesData?.courses || [];
   const selectedCourse = courseData?.course;
+  
+  console.log('Courses data:', courses);
+  console.log('Selected course data:', selectedCourse);
 
   const openCourseViewer = (course: MicroCourse) => {
+    console.log('Opening course:', course.id, 'Status:', course.status);
     if (course.status === 'ready') {
       setLocation(`/micro-courses?course=${course.id}`);
+    } else {
+      console.log('Course not ready, status:', course.status);
     }
   };
 
