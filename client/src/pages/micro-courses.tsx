@@ -32,13 +32,17 @@ export default function MicroCourses() {
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [courseId, setCourseId] = useState<string | null>(null);
   
-  // Parse URL to get course ID
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const courseId = urlParams.get('course');
+  // Update course ID when URL changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('course');
+    setCourseId(id);
+    console.log('URL changed - Window search:', window.location.search, 'Course ID:', id);
+  }, [location]);
+  
   const isViewingCourse = !!courseId;
-  
-  console.log('Micro Courses - URL:', location, 'Course ID:', courseId, 'Is viewing course:', isViewingCourse);
 
   // Fetch user's micro courses
   const { data: coursesData, isLoading } = useQuery<{ courses: MicroCourse[] }>({
@@ -47,13 +51,21 @@ export default function MicroCourses() {
   });
 
   // Fetch individual course if viewing one
-  const { data: courseData, isLoading: isCourseLoading } = useQuery<{ course: MicroCourse }>({
+  const { data: courseData, isLoading: isCourseLoading, error: courseError } = useQuery<any>({
     queryKey: ['/api/micro-courses', courseId],
+    queryFn: async () => {
+      const response = await fetch(`/api/micro-courses/${courseId}`);
+      if (!response.ok) throw new Error('Failed to fetch course');
+      return await response.json();
+    },
     enabled: !!courseId,
   });
+  
+  console.log('Course query - courseId:', courseId, 'isLoading:', isCourseLoading, 'error:', courseError, 'data:', courseData);
 
   const courses = coursesData?.courses || [];
-  const selectedCourse = courseData?.course;
+  // Handle the case where the API returns the wrong format
+  const selectedCourse = courseData?.course || courseData?.courses?.[0];
   
   console.log('Courses data:', courses);
   console.log('Selected course data:', selectedCourse);
@@ -112,14 +124,14 @@ export default function MicroCourses() {
           </div>
 
           <div className="prose prose-lg max-w-none dark:prose-invert">
-            <ReactMarkdown>{selectedCourse.content}</ReactMarkdown>
+            <div dangerouslySetInnerHTML={{ __html: selectedCourse.content }} />
           </div>
 
           {selectedCourse.sourceNotes && selectedCourse.sourceNotes.length > 0 && (
             <div className="mt-8 p-4 bg-muted rounded-lg">
               <h3 className="font-semibold mb-2">Source Notes</h3>
               <div className="space-y-2">
-                {selectedCourse.sourceNotes.map((note, index) => (
+                {selectedCourse.sourceNotes.map((note: any, index: number) => (
                   <div key={index} className="text-sm">
                     <span className="font-medium">{note.title}</span>
                     {note.content && (
