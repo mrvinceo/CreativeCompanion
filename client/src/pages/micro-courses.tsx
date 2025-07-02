@@ -93,7 +93,10 @@ export default function MicroCourses() {
               <>
                 <Button
                   variant="ghost"
-                  onClick={() => setLocation('/micro-courses')}
+                  onClick={() => {
+                    setLocation('/micro-courses');
+                    setCourseId(null);
+                  }}
                   className="flex items-center gap-2 p-2"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -117,7 +120,7 @@ export default function MicroCourses() {
           </div>
         </header>
 
-        <div className="w-full">
+        <div className="w-screen -mx-4 px-4">
           <div className="px-4 py-6 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className="w-5 h-5 text-primary" />
@@ -141,7 +144,7 @@ export default function MicroCourses() {
           </div>
 
           <div className="w-full overflow-x-auto">
-            <div className="prose prose-lg max-w-none dark:prose-invert px-4" dangerouslySetInnerHTML={{ __html: selectedCourse.content }} />
+            <div className="prose prose-lg max-w-none dark:prose-invert px-4 w-full" dangerouslySetInnerHTML={{ __html: selectedCourse.content }} />
           </div>
 
           {selectedCourse.sourceNotes && selectedCourse.sourceNotes.length > 0 && (
