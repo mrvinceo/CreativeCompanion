@@ -13,6 +13,9 @@ import { Label } from "@/components/ui/label";
 import { MapPin, Heart, Search, Loader2, Star, Camera, Music, Palette, BookOpen, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { GoogleMap } from "@/components/google-map";
+import { MobileLayout } from "@/components/mobile-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { RefynLogo } from "@/components/refyn-logo";
 
 interface DiscoveryLocation {
   id: number;
@@ -58,6 +61,7 @@ const categoryIcons = {
 export default function CulturalDiscovery() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [discoveryResults, setDiscoveryResults] = useState<DiscoveryLocation[]>([]);
@@ -308,17 +312,27 @@ export default function CulturalDiscovery() {
     }
   };
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => setLocation('/')}
-            className="p-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+  const pageContent = (
+    <div className="min-h-screen bg-background">
+      {/* Header - only show on desktop */}
+      {!isMobile && (
+        <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <RefynLogo size={36} showTitle={true} />
+            <Button
+              variant="ghost"
+              onClick={() => setLocation('/')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Button>
+          </div>
+        </header>
+      )}
+      
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Cultural Discovery</h1>
             <p className="text-muted-foreground">
@@ -743,4 +757,10 @@ export default function CulturalDiscovery() {
       </Dialog>
     </div>
   );
+
+  if (isMobile) {
+    return <MobileLayout>{pageContent}</MobileLayout>;
+  }
+
+  return pageContent;
 }

@@ -122,3 +122,4 @@ Preferred communication style: Simple, everyday language.
 Changelog:
 - June 18, 2025. Initial setup
 - June 20, 2025. Added conversation deletion functionality with confirmation dialog and complete cleanup of associated files from object storage
+- July 2, 2025. Implemented mobile-responsive UI with sticky header and footer navigation. Updated logo to new design. Added mobile layout component with proper navigation icons (list-restart, map-pin, circle-plus, book-open, graduation-cap). Fixed authentication for development environment. Integrated mobile layout across all main pages (Home, Notes, Micro-courses, Cultural Discovery).

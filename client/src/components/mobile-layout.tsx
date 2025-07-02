@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { RefynLogo } from '@/components/refyn-logo';
 import { ProfileDialog } from '@/components/profile-dialog';
+import { MobileConversationHistory } from '@/components/mobile-conversation-history';
 import { User, LogOut, ListRestart, MapPin, CirclePlus, BookOpen, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
@@ -69,6 +70,7 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-card border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
+          <div className="w-10"></div> {/* Spacer for centering */}
           <RefynLogo size={32} showTitle={false} />
           <div className="flex items-center space-x-2">
             <ProfileDialog>
@@ -109,6 +111,26 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
           {navigationItems.map((item) => {
             const IconComponent = item.icon;
             const isActive = getActiveId() === item.id;
+            
+            if (item.id === 'history' && onSelectConversation) {
+              return (
+                <MobileConversationHistory
+                  key={item.id}
+                  onSelectConversation={onSelectConversation}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${
+                      isActive ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <IconComponent className="w-5 h-5 mb-1" />
+                    <span className="text-xs font-medium">{item.label}</span>
+                  </Button>
+                </MobileConversationHistory>
+              );
+            }
             
             return (
               <Button
