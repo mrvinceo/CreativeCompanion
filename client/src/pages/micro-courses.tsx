@@ -86,22 +86,36 @@ export default function MicroCourses() {
   if (isViewingCourse && selectedCourse) {
     const coursePageContent = (
       <div className="min-h-screen bg-background">
-        {/* Header - only show on desktop */}
-        {!isMobile && (
-          <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              <RefynLogo size={36} showTitle={true} />
-              <Button
-                variant="ghost"
-                onClick={() => setLocation('/micro-courses')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Courses
-              </Button>
-            </div>
-          </header>
-        )}
+        {/* Header */}
+        <header className="sticky top-0 z-50 bg-card border-b border-border px-3 sm:px-6 py-3">
+          <div className={`${isMobile ? '' : 'max-w-7xl mx-auto'} flex items-center justify-between`}>
+            {isMobile ? (
+              <>
+                <Button
+                  variant="ghost"
+                  onClick={() => setLocation('/micro-courses')}
+                  className="flex items-center gap-2 p-2"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <RefynLogo size={48} showTitle={false} />
+                <div className="w-10"></div> {/* Spacer for centering */}
+              </>
+            ) : (
+              <>
+                <RefynLogo size={36} showTitle={true} />
+                <Button
+                  variant="ghost"
+                  onClick={() => setLocation('/micro-courses')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Courses
+                </Button>
+              </>
+            )}
+          </div>
+        </header>
 
         <div className="container mx-auto p-6">
           <div className="mb-6">
@@ -149,9 +163,7 @@ export default function MicroCourses() {
       </div>
     );
 
-    if (isMobile) {
-      return <MobileLayout>{coursePageContent}</MobileLayout>;
-    }
+    // For course viewing, return content directly without mobile layout wrapper to allow full width
     return coursePageContent;
   }
 
