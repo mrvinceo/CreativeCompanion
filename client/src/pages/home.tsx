@@ -8,7 +8,7 @@ import { Palette, Lightbulb, LogOut, User, Plus, MapPin, BookOpen, Sparkles } fr
 import { FileUpload } from '@/components/file-upload';
 import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';
-import { ConversationHistory } from '@/components/conversation-history';
+import { ConversationHistoryDrawer } from '@/components/conversation-history-drawer';
 import { SubscriptionStatus } from '@/components/subscription-status';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { RefynLogo } from '@/components/refyn-logo';
@@ -202,7 +202,11 @@ export default function Home() {
             <div className="flex items-center space-x-3">
               {user && (
                 <>
-                  <ConversationHistory onSelectConversation={handleSelectConversation} />
+                  <ConversationHistoryDrawer onSelectConversation={handleSelectConversation}>
+                    <Button variant="outline" size="sm">
+                      History
+                    </Button>
+                  </ConversationHistoryDrawer>
                   <Button 
                     variant="outline" 
                     size="sm"
