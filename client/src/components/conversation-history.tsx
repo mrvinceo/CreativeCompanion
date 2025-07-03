@@ -104,6 +104,14 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
     return mimeType.startsWith('image/') && (mimeType.includes('jpeg') || mimeType.includes('jpg') || mimeType.includes('png'));
   };
 
+  const getFileTypeIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return <Image className="w-3 h-3 text-blue-500" />;
+    if (mimeType.startsWith('audio/')) return <Music className="w-3 h-3 text-purple-500" />;
+    if (mimeType.startsWith('video/')) return <Video className="w-3 h-3 text-green-500" />;
+    if (mimeType === 'application/pdf') return <FileType className="w-3 h-3 text-red-500" />;
+    return <FileType className="w-3 h-3 text-gray-500" />;
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
@@ -139,7 +147,22 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
                   className="p-4 hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary"
                   onClick={() => handleSelectConversation(conversation.sessionId)}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-3">
+                    {/* Thumbnail */}
+                    <div className="flex-shrink-0">
+                      {conversation.files.length > 0 && isImageFile(conversation.files[0].mimeType) ? (
+                        <img 
+                          src={`/api/files/${conversation.files[0].id}/content`}
+                          alt={conversation.files[0].originalName}
+                          className="w-16 h-16 rounded-lg object-cover border border-slate-200"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
+                          <FileText className="w-8 h-8 text-slate-400" />
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-2">
                         {conversation.mediaType && (
@@ -168,47 +191,30 @@ export function ConversationHistory({ onSelectConversation }: ConversationHistor
                         </div>
                       </div>
                       
-                      {conversation.files.length > 0 && (
-                        <div className="mt-3 space-y-2">
-                          {/* Image previews */}
-                          <div className="flex flex-wrap gap-2">
-                            {conversation.files
-                              .filter(file => isImageFile(file.mimeType))
-                              .slice(0, 4)
-                              .map((file) => (
-                                <div key={file.id} className="relative">
-                                  <img 
-                                    src={`/api/files/${file.id}/content`}
-                                    alt={file.originalName}
-                                    className="w-12 h-12 rounded object-cover border border-slate-200"
-                                  />
-                                </div>
-                              ))}
-                          </div>
-                          
-                          {/* Non-image files */}
+                      {conversation.files.length > 1 && (
+                        <div className="mt-3">
+                          {/* Additional file indicators */}
                           <div className="flex flex-wrap gap-1">
                             {conversation.files
-                              .filter(file => !isImageFile(file.mimeType))
-                              .slice(0, 3)
-                              .map((file) => {
-                                const IconComponent = getFileIcon(file.mimeType);
-                                return (
-                                  <div key={file.id} className="flex items-center space-x-1 bg-slate-100 rounded px-2 py-1">
-                                    <IconComponent className="w-3 h-3 text-slate-500" />
-                                    <span className="text-xs text-slate-600">
-                                      {file.originalName.length > 12 
-                                        ? `${file.originalName.substring(0, 12)}...` 
-                                        : file.originalName}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            {conversation.files.filter(file => !isImageFile(file.mimeType)).length > 3 && (
-                              <div className="flex items-center space-x-1 bg-slate-100 rounded px-2 py-1">
-                                <span className="text-xs text-slate-600">
-                                  +{conversation.files.filter(file => !isImageFile(file.mimeType)).length - 3} more
-                                </span>
+                              .slice(1, 5)
+                              .map((file) => (
+                                <div key={file.id} className="w-6 h-6 rounded border border-slate-200 overflow-hidden">
+                                  {isImageFile(file.mimeType) ? (
+                                    <img 
+                                      src={`/api/files/${file.id}/content`}
+                                      alt={file.originalName}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+                                      {getFileTypeIcon(file.mimeType)}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            {conversation.files.length > 5 && (
+                              <div className="w-6 h-6 rounded border border-slate-200 bg-slate-100 flex items-center justify-center text-xs text-slate-500">
+                                +{conversation.files.length - 5}
                               </div>
                             )}
                           </div>

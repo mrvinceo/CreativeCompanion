@@ -13,12 +13,13 @@ export function FilePreview({ files }: FilePreviewProps) {
 
   if (files.length === 0) return null;
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return <Image className="w-16 h-16 text-blue-500" />;
-    if (mimeType.startsWith('audio/')) return <Music className="w-16 h-16 text-purple-500" />;
-    if (mimeType.startsWith('video/')) return <Video className="w-16 h-16 text-green-500" />;
-    if (mimeType === 'application/pdf') return <FileText className="w-16 h-16 text-red-500" />;
-    return <FileText className="w-16 h-16 text-gray-500" />;
+  const getFileIcon = (mimeType: string, size: 'small' | 'large' = 'large') => {
+    const sizeClass = size === 'small' ? 'w-6 h-6 sm:w-8 sm:h-8' : 'w-16 h-16';
+    if (mimeType.startsWith('image/')) return <Image className={`${sizeClass} text-blue-500`} />;
+    if (mimeType.startsWith('audio/')) return <Music className={`${sizeClass} text-purple-500`} />;
+    if (mimeType.startsWith('video/')) return <Video className={`${sizeClass} text-green-500`} />;
+    if (mimeType === 'application/pdf') return <FileText className={`${sizeClass} text-red-500`} />;
+    return <FileText className={`${sizeClass} text-gray-500`} />;
   };
 
   const isImageFile = (mimeType: string) => {
@@ -66,13 +67,13 @@ export function FilePreview({ files }: FilePreviewProps) {
   }, [files.length]);
 
   return (
-    <Card className="p-4">
-      <h3 className="text-sm font-medium text-slate-700 mb-3">
+    <Card className="p-2 sm:p-4">
+      <h3 className="text-sm font-medium text-slate-700 mb-3 px-2 sm:px-0">
         Files Ready for Feedback ({files.length})
       </h3>
       
       {/* Main slideshow area */}
-      <div className="relative bg-black rounded-lg overflow-hidden mb-4" style={{ aspectRatio: '16/9', minHeight: '300px' }}>
+      <div className="relative bg-black rounded-lg overflow-hidden mb-4 w-full" style={{ aspectRatio: '16/9', minHeight: '200px' }}>
         {/* Navigation arrows */}
         {files.length > 1 && (
           <>
@@ -133,12 +134,12 @@ export function FilePreview({ files }: FilePreviewProps) {
 
       {/* Thumbnail navigation */}
       {files.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 px-2 sm:px-0">
           {files.map((file, index) => (
             <button
               key={file.id}
               onClick={() => goToSlide(index)}
-              className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-colors ${
+              className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded border-2 overflow-hidden transition-colors ${
                 index === currentIndex ? 'border-primary' : 'border-gray-300'
               }`}
             >
@@ -150,7 +151,7 @@ export function FilePreview({ files }: FilePreviewProps) {
                 />
               ) : (
                 <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                  {getFileIcon(file.mimeType)}
+                  {getFileIcon(file.mimeType, 'small')}
                 </div>
               )}
             </button>
