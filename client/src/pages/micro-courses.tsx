@@ -84,6 +84,14 @@ export default function MicroCourses() {
 
   // If viewing a course, show the course content
   if (isViewingCourse && selectedCourse) {
+    // Add body class to remove padding
+    useEffect(() => {
+      document.body.classList.add('viewing-course');
+      return () => {
+        document.body.classList.remove('viewing-course');
+      };
+    }, []);
+
     const coursePageContent = (
       <div className="min-h-screen bg-background">
         {/* Header */}
@@ -120,7 +128,7 @@ export default function MicroCourses() {
           </div>
         </header>
 
-        <div className="w-screen -mx-4 px-4">
+        <div className="w-full">
           <div className="px-4 py-6 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className="w-5 h-5 text-primary" />

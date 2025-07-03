@@ -100,4 +100,17 @@
   .prose-invert h1, .prose-invert h2, .prose-invert h3, .prose-invert h4, .prose-invert h5, .prose-invert h6 {
     color: var(--primary-foreground);
   }
+  
+  /* Full width course content - override any body padding */
+  .course-fullwidth {
+    margin-left: calc(-1 * var(--body-padding-x, 0px));
+    margin-right: calc(-1 * var(--body-padding-x, 0px));
+    width: calc(100% + 2 * var(--body-padding-x, 0px));
+  }
+  
+  /* Remove body padding for course pages */
+  body.viewing-course {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
