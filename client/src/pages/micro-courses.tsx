@@ -52,6 +52,16 @@ export default function MicroCourses() {
   
   const isViewingCourse = !!courseId;
 
+  // Add/remove body class for course viewing (must be at top level)
+  useEffect(() => {
+    if (isViewingCourse) {
+      document.body.classList.add('viewing-course');
+      return () => {
+        document.body.classList.remove('viewing-course');
+      };
+    }
+  }, [isViewingCourse]);
+
   // Fetch user's micro courses
   const { data: coursesData, isLoading } = useQuery<{ courses: MicroCourse[] }>({
     queryKey: ['/api/micro-courses'],
@@ -84,14 +94,6 @@ export default function MicroCourses() {
 
   // If viewing a course, show the course content
   if (isViewingCourse && selectedCourse) {
-    // Add body class to remove padding
-    useEffect(() => {
-      document.body.classList.add('viewing-course');
-      return () => {
-        document.body.classList.remove('viewing-course');
-      };
-    }, []);
-
     const coursePageContent = (
       <div className="min-h-screen bg-background">
         {/* Header */}
