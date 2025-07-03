@@ -1,18 +1,16 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, BookOpen, Calendar, Clock, ExternalLink, Plus, CirclePlus, GraduationCap, MapPin } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Clock, ExternalLink, Plus } from "lucide-react";
 import { useLocation } from "wouter";
 import { RefynLogo } from "@/components/refyn-logo";
 import { MicroCourseGenerator } from "@/components/micro-course-generator";
 import { MobileLayout } from "@/components/mobile-layout";
 import { useIsMobile } from "@/hooks/use-mobile";
-import ReactMarkdown from "react-markdown";
 
 interface MicroCourse {
   id: number;
@@ -32,35 +30,7 @@ export default function MicroCourses() {
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
-  const [courseId, setCourseId] = useState<string | null>(null);
-  
-  // Update course ID when URL changes
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('course');
-    setCourseId(id);
-  }, [location]);
-
-  // Also update immediately when window location changes (for programmatic navigation)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('course');
-    if (id !== courseId) {
-      setCourseId(id);
-    }
-  });
-  
-  const isViewingCourse = !!courseId;
-
-  // Add/remove body class for course viewing (must be at top level)
-  useEffect(() => {
-    if (isViewingCourse) {
-      document.body.classList.add('viewing-course');
-      return () => {
-        document.body.classList.remove('viewing-course');
-      };
-    }
-  }, [isViewingCourse]);
+  const [selectedCourse, setSelectedCourse] = useState<MicroCourse | null>(null);
 
   // Fetch user's micro courses
   const { data: coursesData, isLoading } = useQuery<{ courses: MicroCourse[] }>({
@@ -68,123 +38,14 @@ export default function MicroCourses() {
     refetchInterval: 30000, // Refetch every 30 seconds to check for completed courses
   });
 
-  // Fetch individual course if viewing one
-  const { data: courseData, isLoading: isCourseLoading, error: courseError } = useQuery<any>({
-    queryKey: ['/api/micro-courses', courseId],
-    queryFn: async () => {
-      const response = await fetch(`/api/micro-courses/${courseId}`);
-      if (!response.ok) throw new Error('Failed to fetch course');
-      return await response.json();
-    },
-    enabled: !!courseId,
-  });
-  
   const courses = coursesData?.courses || [];
-  // Handle the case where the API returns the wrong format
-  const selectedCourse = courseData?.course || courseData?.courses?.[0];
 
   const openCourseViewer = (course: MicroCourse) => {
     if (course.status === 'ready') {
-      // Use window.history to navigate with query params and manually update state
-      const newUrl = `/micro-courses?course=${course.id}`;
-      window.history.pushState({}, '', newUrl);
-      setCourseId(course.id.toString());
+      setSelectedCourse(course);
     }
   };
 
-  // If viewing a course, show the course content
-  if (isViewingCourse && selectedCourse) {
-    const coursePageContent = (
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="sticky top-0 z-50 bg-card border-b border-border px-3 sm:px-6 py-3">
-          <div className={`${isMobile ? '' : 'max-w-7xl mx-auto'} flex items-center justify-between`}>
-            {isMobile ? (
-              <>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setLocation('/micro-courses');
-                    setCourseId(null);
-                  }}
-                  className="flex items-center gap-2 p-2"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <RefynLogo size={48} showTitle={false} />
-                <div className="w-10"></div> {/* Spacer for centering */}
-              </>
-            ) : (
-              <>
-                <RefynLogo size={36} showTitle={true} />
-                <Button
-                  variant="ghost"
-                  onClick={() => setLocation('/micro-courses')}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Courses
-                </Button>
-              </>
-            )}
-          </div>
-        </header>
-
-        <div className="w-full">
-          <div className="px-4 py-6 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              <Badge variant="secondary" className="text-xs">
-                Micro Course
-              </Badge>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{selectedCourse.title}</h1>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {new Date(selectedCourse.createdAt).toLocaleDateString()}
-              </div>
-              {selectedCourse.completedAt && (
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  Completed {new Date(selectedCourse.completedAt).toLocaleDateString()}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="w-full overflow-x-auto">
-            <div className="prose prose-lg max-w-none dark:prose-invert px-4 w-full" dangerouslySetInnerHTML={{ __html: selectedCourse.content }} />
-          </div>
-
-          {selectedCourse.sourceNotes && selectedCourse.sourceNotes.length > 0 && (
-            <div className="mt-8 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold mb-2">Source Notes</h3>
-              <div className="space-y-2">
-                {selectedCourse.sourceNotes.map((note: any, index: number) => (
-                  <div key={index} className="text-sm">
-                    <span className="font-medium">{note.title}</span>
-                    {note.content && (
-                      <p className="text-muted-foreground mt-1">{note.content.substring(0, 100)}...</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-
-      </div>
-    );
-
-    if (isMobile) {
-      return <MobileLayout>{coursePageContent}</MobileLayout>;
-    }
-    return coursePageContent;
-  }
-
-  // Course list view
   const pageContent = (
     <div className="min-h-screen bg-background">
       {/* Header - only show on desktop */}
@@ -302,7 +163,25 @@ export default function MicroCourses() {
         onClose={() => setIsGeneratorOpen(false)} 
       />
 
-
+      {/* Course Viewer Dialog */}
+      {selectedCourse && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card border rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-xl font-semibold">{selectedCourse.title}</h2>
+              <Button variant="ghost" onClick={() => setSelectedCourse(null)}>
+                ×
+              </Button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+              <div 
+                className="prose prose-sm max-w-none dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: selectedCourse.content }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

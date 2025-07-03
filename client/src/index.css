@@ -21,13 +21,13 @@
 
 :root {
   /* Refyn Brand Colors */
-  --refyn-yellow: hsl(58, 91%, 67%); /* #F5B041 */
-  --refyn-teal: hsl(194, 47%, 43%); /* #2C5F6C */
-  --refyn-burgundy: hsl(341, 51%, 52%); /* #8B1538 */
-  --refyn-cream: hsl(0, 0%, 95%); /* #F4F1E8 */
+  --refyn-yellow: hsl(42, 86%, 62%); /* #F5B041 */
+  --refyn-teal: hsl(193, 42%, 29%); /* #2C5F6C */
+  --refyn-burgundy: hsl(340, 74%, 31%); /* #8B1538 */
+  --refyn-cream: hsl(47, 64%, 92%); /* #F4F1E8 */
   --refyn-black: hsl(0, 0%, 0%); /* #000000 */
   
-  --background: hsl(0, 0%, 100%); /* Cream background */
+  --background: hsl(47, 64%, 92%); /* Cream background */
   --foreground: hsl(0, 0%, 0%); /* Black text */
   --muted: hsl(47, 50%, 85%);
   --muted-foreground: hsl(0, 0%, 25%);
@@ -99,18 +99,5 @@
   
   .prose-invert h1, .prose-invert h2, .prose-invert h3, .prose-invert h4, .prose-invert h5, .prose-invert h6 {
     color: var(--primary-foreground);
-  }
-  
-  /* Full width course content - override any body padding */
-  .course-fullwidth {
-    margin-left: calc(-1 * var(--body-padding-x, 0px));
-    margin-right: calc(-1 * var(--body-padding-x, 0px));
-    width: calc(100% + 2 * var(--body-padding-x, 0px));
-  }
-  
-  /* Remove body padding for course pages */
-  body.viewing-course {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
   }
 }

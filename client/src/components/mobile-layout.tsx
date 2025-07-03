@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { RefynLogo } from '@/components/refyn-logo';
 import { ProfileDialog } from '@/components/profile-dialog';
-import { ConversationHistoryDrawer } from '@/components/conversation-history-drawer';
+import { MobileConversationHistory } from '@/components/mobile-conversation-history';
 import { User, LogOut, ListRestart, MapPin, CirclePlus, BookOpen, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
@@ -112,7 +112,7 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
             
             if (item.id === 'history') {
               return (
-                <ConversationHistoryDrawer
+                <MobileConversationHistory
                   key={item.id}
                   onSelectConversation={(sessionId: string) => {
                     setLocation(`/?session=${sessionId}`);
@@ -131,7 +131,7 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
                     <IconComponent className="w-5 h-5 mb-1" />
                     <span className="text-xs font-medium">{item.label}</span>
                   </Button>
-                </ConversationHistoryDrawer>
+                </MobileConversationHistory>
               );
             }
             
