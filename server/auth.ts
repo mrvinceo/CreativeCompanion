@@ -9,6 +9,7 @@ import { storage } from "./storage";
 import { User } from "@shared/schema";
 import { nanoid } from "nanoid";
 import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 declare global {
   namespace Express {
@@ -37,12 +38,19 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+export const isAuthenticated = (req: any, res: any, next: any) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "User not authenticated" });
+  }
+  next();
+};
+
 export function setupAuth(app: Express) {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    pool: pool,
+    createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
   });
@@ -211,6 +219,24 @@ export function setupAuth(app: Express) {
 
 
 
+  // Session debugging endpoint
+  app.get("/api/session-debug", (req, res) => {
+    console.log("=== SESSION DEBUG ===");
+    console.log("Session ID:", req.sessionID);
+    console.log("Session keys:", Object.keys(req.session));
+    console.log("Session:", req.session);
+    console.log("Is authenticated:", req.isAuthenticated());
+    console.log("User:", req.user);
+    console.log("=== END DEBUG ===");
+    
+    res.json({
+      sessionID: req.sessionID,
+      sessionKeys: Object.keys(req.session),
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user
+    });
+  });
+
   app.get("/api/auth/user", (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -219,9 +245,3 @@ export function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ error: "Not authenticated" });
-};

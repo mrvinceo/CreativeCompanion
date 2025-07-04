@@ -172,20 +172,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = (req.user as any).claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Auth routes are handled in setupAuth function
 
   // Upload files endpoint
-  app.post("/api/upload", upload.array("files", 10), async (req, res) => {
+  app.post("/api/upload", isAuthenticated, upload.array("files", 10), async (req: any, res) => {
     try {
       const { sessionId } = req.body;
 
@@ -385,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start conversation with AI analysis
   app.post("/api/analyze", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user?.id;
       const { sessionId, contextPrompt, mediaType } = req.body;
 
       if (!sessionId || !contextPrompt || !mediaType) {
