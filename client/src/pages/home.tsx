@@ -350,7 +350,7 @@ export default function Home() {
                   onValueChange={(value: MediaType) => setMediaType(value)}
                   disabled={analyzing || !!conversation}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1 bg-white text-slate-900">
                     <SelectValue placeholder="Choose the type of creative work..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -377,7 +377,7 @@ Examples:
 • 'Focus on color harmony and composition'
 • 'I'm particularly interested in emotional impact'
 • 'Please evaluate technical execution and style'"
-                  className="mt-1"
+                  className="mt-1 bg-white text-slate-900 placeholder:text-slate-500"
                   rows={6}
                   disabled={analyzing || !!conversation}
                 />
