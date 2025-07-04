@@ -2,23 +2,25 @@ import refynLogoAsset from "@assets/Asset 6@4x_1751463951553.png";
 
 interface RefynLogoProps {
   size?: number;
+  height?: number;
   showTitle?: boolean;
   showSubtitle?: boolean;
   className?: string;
 }
 
 export function RefynLogo({ 
-  size = 64, 
+  size = 64,
+  height = size / 2,
   showTitle = true, 
   showSubtitle = false, 
   className = "" 
 }: RefynLogoProps) {
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex flex-col items-center gap-0 ${className}`}>
       <img 
         src={refynLogoAsset} 
         alt="Refyn Logo" 
-        style={{ width: size, height: size }}
+        style={{ width: size, height: height }}
         className="object-contain"
       />
       {showTitle && (

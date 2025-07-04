@@ -69,7 +69,7 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
       <header className="sticky top-0 z-50 h-20 bg-card px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="w-10"></div> {/* Spacer for centering */}
-          <RefynLogo size={64} showTitle={false} />
+          <RefynLogo size={94} showTitle={false} />
           <div className="flex items-center space-x-2">
             <ProfileDialog>
               <Button variant="ghost" size="sm" className="p-2">

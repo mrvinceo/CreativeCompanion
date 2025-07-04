@@ -198,7 +198,7 @@ export default function Home() {
       {!isMobile && (
         <header className="bg-card border-b border-border px-3 sm:px-6 py-3">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <RefynLogo size={64} showTitle={true} />
+            <RefynLogo size={94} showTitle={true} />
             <div className="flex items-center space-x-3">
               {user && (
                 <>
