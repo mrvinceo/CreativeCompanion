@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import Home from "@/pages/home";
 import Landing from "@/pages/landing";
 import AuthPage from "@/pages/auth-page";
+import LoginPage from "@/pages/login-page";
+import RegisterPage from "@/pages/register-page";
 import Success from "@/pages/success";
 import Notes from "@/pages/notes";
 import MicroCourses from "./pages/micro-courses";
@@ -21,7 +23,8 @@ function Router() {
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/auth" component={AuthPage} />
+          <Route path="/auth" component={LoginPage} />
+          <Route path="/register" component={RegisterPage} />
         </>
       ) : (
         <>
