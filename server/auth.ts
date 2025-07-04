@@ -199,7 +199,19 @@ export function setupAuth(app: Express) {
   app.get("/api/auth/google/callback", 
     passport.authenticate("google", { failureRedirect: "/auth?error=google" }),
     (req, res) => {
-      res.redirect("/");
+      console.log("OAuth callback - user authenticated:", req.user?.id);
+      console.log("OAuth callback - session ID:", req.sessionID);
+      console.log("OAuth callback - isAuthenticated:", req.isAuthenticated());
+      
+      // Force save session
+      req.session.save((err) => {
+        if (err) {
+          console.log("Session save error:", err);
+        } else {
+          console.log("Session saved successfully");
+        }
+        res.redirect("/");
+      });
     }
   );
 
@@ -237,7 +249,37 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Test authentication endpoint - create a logged in session for testing
+  app.post("/api/test-login", async (req, res) => {
+    console.log("=== TEST LOGIN ENDPOINT HIT ===");
+    try {
+      console.log("Creating test session...");
+      const testUser = await storage.getUserByEmail("mrvinceo@gmail.com");
+      if (testUser) {
+        req.login(testUser, (err) => {
+          if (err) {
+            console.log("Login error:", err);
+            return res.status(500).json({ error: "Login failed" });
+          }
+          console.log("Test login successful for user:", testUser.id);
+          return res.json({ success: true, user: testUser });
+        });
+      } else {
+        return res.status(404).json({ error: "Test user not found" });
+      }
+    } catch (error) {
+      console.log("Test login error:", error);
+      return res.status(500).json({ error: "Test login failed" });
+    }
+  });
+
   app.get("/api/auth/user", (req, res) => {
+    console.log("=== AUTH USER ENDPOINT ===");
+    console.log("Is authenticated:", req.isAuthenticated());
+    console.log("User:", req.user);
+    console.log("Session ID:", req.sessionID);
+    console.log("=== END AUTH USER ===");
+    
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
