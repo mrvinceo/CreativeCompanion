@@ -154,8 +154,7 @@ export default function AuthPage() {
           <CardContent className="space-y-4">
             {/* Google OAuth Button */}
             <Button 
-              variant="outline" 
-              className="w-full" 
+              className="w-full bg-primary hover:bg-primary/90 text-black font-bold" 
               onClick={handleGoogleAuth}
               disabled={loginMutation.isPending || registerMutation.isPending}
             >
@@ -229,7 +228,7 @@ export default function AuthPage() {
                   />
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full bg-secondary hover:bg-secondary/90 text-white font-bold" 
                     disabled={loginMutation.isPending}
                   >
                     {loginMutation.isPending ? "Signing in..." : "Sign in"}
@@ -306,7 +305,7 @@ export default function AuthPage() {
                   />
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full bg-secondary hover:bg-secondary/90 text-white font-bold" 
                     disabled={registerMutation.isPending}
                   >
                     {registerMutation.isPending ? "Creating account..." : "Create account"}

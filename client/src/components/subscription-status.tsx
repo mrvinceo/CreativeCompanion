@@ -106,11 +106,11 @@ export function SubscriptionStatus() {
   };
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className="p-4 space-y-4 border-0 shadow-md bg-gradient-to-r from-gray-50 to-white">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <MessageSquare className="w-4 h-4 text-slate-600" />
-          <span className="text-sm font-medium">Monthly Usage</span>
+          <MessageSquare className="w-4 h-4 text-primary" />
+          <span className="text-sm font-bold text-black">Monthly Usage</span>
         </div>
         {getPlanBadge()}
       </div>

@@ -20,57 +20,57 @@
 }
 
 :root {
-  /* Refyn Brand Colors */
-  --refyn-yellow: hsl(42, 86%, 62%); /* #F5B041 */
-  --refyn-teal: hsl(193, 42%, 29%); /* #2C5F6C */
-  --refyn-burgundy: hsl(340, 74%, 31%); /* #8B1538 */
-  --refyn-cream: hsl(47, 64%, 92%); /* #F4F1E8 */
-  --refyn-black: hsl(0, 0%, 0%); /* #000000 */
+  /* GiffGaff-Inspired Bold Colors */
+  --giff-yellow: hsl(42, 89%, 56%); /* #F5A623 - Bold yellow/orange */
+  --giff-pink: hsl(340, 82%, 52%); /* #E91E63 - Vibrant pink/magenta */
+  --giff-dark: hsl(0, 0%, 12%); /* #1F1F1F - Dark navigation */
+  --giff-gray: hsl(0, 0%, 96%); /* #F5F5F5 - Light gray background */
+  --giff-black: hsl(0, 0%, 0%); /* #000000 - Pure black text */
   
-  --background: hsl(47, 64%, 92%); /* Cream background */
-  --foreground: hsl(0, 0%, 0%); /* Black text */
-  --muted: hsl(47, 50%, 85%);
-  --muted-foreground: hsl(0, 0%, 25%);
+  --background: hsl(0, 0%, 100%); /* Clean white background */
+  --foreground: hsl(0, 0%, 0%); /* Pure black text */
+  --muted: hsl(0, 0%, 96%); /* Light gray muted */
+  --muted-foreground: hsl(0, 0%, 45%); /* Medium gray text */
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(0, 0%, 0%);
   --card: hsl(0, 0%, 100%);
   --card-foreground: hsl(0, 0%, 0%);
-  --border: hsl(47, 30%, 80%);
+  --border: hsl(0, 0%, 90%); /* Light border */
   --input: hsl(0, 0%, 100%);
-  --primary: hsl(42, 86%, 62%); /* Refyn Yellow */
+  --primary: hsl(42, 89%, 56%); /* Bold yellow primary */
   --primary-foreground: hsl(0, 0%, 0%); /* Black on yellow */
-  --secondary: hsl(193, 42%, 29%); /* Refyn Teal */
-  --secondary-foreground: hsl(0, 0%, 100%); /* White on teal */
-  --accent: hsl(42, 86%, 62%); /* Refyn Yellow */
+  --secondary: hsl(340, 82%, 52%); /* Vibrant pink secondary */
+  --secondary-foreground: hsl(0, 0%, 100%); /* White on pink */
+  --accent: hsl(42, 89%, 56%); /* Bold yellow accent */
   --accent-foreground: hsl(0, 0%, 0%);
-  --destructive: hsl(340, 74%, 31%); /* Refyn Burgundy */
+  --destructive: hsl(0, 84%, 60%); /* Red for destructive */
   --destructive-foreground: hsl(0, 0%, 100%);
-  --ring: hsl(42, 86%, 62%);
-  --radius: 0.75rem;
-  --warning: hsl(42, 86%, 62%);
+  --ring: hsl(42, 89%, 56%);
+  --radius: 1rem; /* More rounded corners like GiffGaff */
+  --warning: hsl(42, 89%, 56%);
 }
 
 .dark {
-  --background: hsl(0, 0%, 5%);
-  --foreground: hsl(47, 64%, 92%);
-  --muted: hsl(0, 0%, 15%);
-  --muted-foreground: hsl(47, 30%, 70%);
-  --popover: hsl(0, 0%, 8%);
-  --popover-foreground: hsl(47, 64%, 92%);
-  --card: hsl(0, 0%, 8%);
-  --card-foreground: hsl(47, 64%, 92%);
-  --border: hsl(0, 0%, 15%);
-  --input: hsl(0, 0%, 15%);
-  --primary: hsl(42, 86%, 62%); /* Keep yellow primary */
-  --primary-foreground: hsl(0, 0%, 0%);
-  --secondary: hsl(193, 42%, 35%); /* Lighter teal for dark mode */
-  --secondary-foreground: hsl(47, 64%, 92%);
-  --accent: hsl(42, 86%, 62%);
+  --background: hsl(0, 0%, 12%); /* Dark like GiffGaff nav */
+  --foreground: hsl(0, 0%, 100%); /* Pure white text */
+  --muted: hsl(0, 0%, 20%); /* Darker muted */
+  --muted-foreground: hsl(0, 0%, 70%); /* Light gray text */
+  --popover: hsl(0, 0%, 15%);
+  --popover-foreground: hsl(0, 0%, 100%);
+  --card: hsl(0, 0%, 15%);
+  --card-foreground: hsl(0, 0%, 100%);
+  --border: hsl(0, 0%, 25%); /* Darker border */
+  --input: hsl(0, 0%, 20%);
+  --primary: hsl(42, 89%, 56%); /* Bold yellow primary */
+  --primary-foreground: hsl(0, 0%, 0%); /* Black on yellow */
+  --secondary: hsl(340, 82%, 52%); /* Vibrant pink secondary */
+  --secondary-foreground: hsl(0, 0%, 100%); /* White on pink */
+  --accent: hsl(42, 89%, 56%); /* Bold yellow accent */
   --accent-foreground: hsl(0, 0%, 0%);
-  --destructive: hsl(340, 74%, 45%); /* Lighter burgundy for dark mode */
-  --destructive-foreground: hsl(47, 64%, 92%);
-  --ring: hsl(42, 86%, 62%);
-  --warning: hsl(42, 86%, 62%);
+  --destructive: hsl(0, 84%, 60%); /* Red for destructive */
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(42, 89%, 56%);
+  --warning: hsl(42, 89%, 56%);
 }
 
 @layer base {

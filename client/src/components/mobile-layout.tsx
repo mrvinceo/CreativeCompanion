@@ -65,14 +65,14 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-50 h-20 bg-card px-4 py-3">
+      {/* Sticky Header - GiffGaff Style Dark */}
+      <header className="sticky top-0 z-50 h-20 bg-gray-900 text-white px-4 py-3 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="w-10"></div> {/* Spacer for centering */}
           <RefynLogo size={94} showTitle={false} />
           <div className="flex items-center space-x-2">
             <ProfileDialog>
-              <Button variant="ghost" size="sm" className="p-2">
+              <Button variant="ghost" size="sm" className="p-2 text-white hover:bg-gray-800">
                 {user.profileImageUrl ? (
                   <img 
                     src={user.profileImageUrl} 
@@ -80,8 +80,8 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
                     className="w-6 h-6 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-6 h-6 bg-slate-300 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-slate-600" />
+                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-black" />
                   </div>
                 )}
               </Button>
@@ -90,7 +90,7 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
               variant="ghost" 
               size="sm"
               onClick={() => window.location.href = '/api/logout'}
-              className="p-2"
+              className="p-2 text-white hover:bg-gray-800"
             >
               <LogOut className="w-5 h-5" />
             </Button>
@@ -103,8 +103,8 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
         {children}
       </main>
 
-      {/* Sticky Footer Navigation */}
-      <nav className="sticky bottom-0 z-50 bg-card py-4">
+      {/* Sticky Footer Navigation - GiffGaff Style Dark */}
+      <nav className="sticky bottom-0 z-50 bg-gray-900 py-4 shadow-lg border-t border-gray-800">
         <div className="flex items-center justify-around">
           {navigationItems.map((item) => {
             const IconComponent = item.icon;
@@ -124,8 +124,8 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${
-                      isActive ? 'text-primary' : 'text-muted-foreground'
+                    className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 hover:bg-gray-800 ${
+                      isActive ? 'text-primary' : 'text-gray-300 hover:text-white'
                     }`}
                   >
                     <IconComponent className="w-5 h-5 mb-1" />
@@ -141,8 +141,8 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
                 variant="ghost"
                 size="sm"
                 onClick={item.action}
-                className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
+                className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 hover:bg-gray-800 ${
+                  isActive ? 'text-primary' : 'text-gray-300 hover:text-white'
                 }`}
               >
                 <IconComponent className="w-5 h-5 mb-1" />

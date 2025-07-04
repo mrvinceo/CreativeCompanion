@@ -277,6 +277,51 @@ export default function Home() {
         <div className="lg:w-1/2 space-y-6">
           <SubscriptionStatus />
 
+          {/* Feature Cards - GiffGaff Style */}
+          {!conversation && files.length === 0 && (
+            <>
+              <h2 className="text-xl font-bold text-black mb-4">Get creative feedback</h2>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <Card className="p-4 bg-gradient-to-br from-primary to-yellow-400 text-black border-0 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Palette className="w-6 h-6 mb-2" />
+                      <h3 className="font-bold text-sm">Visual Arts</h3>
+                      <p className="text-xs opacity-90">Photography, painting, drawing</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 bg-gradient-to-br from-secondary to-pink-400 text-white border-0 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <BookOpen className="w-6 h-6 mb-2" />
+                      <h3 className="font-bold text-sm">Writing</h3>
+                      <p className="text-xs opacity-90">Stories, poetry, scripts</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 bg-gradient-to-br from-green-500 to-emerald-400 text-white border-0 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Sparkles className="w-6 h-6 mb-2" />
+                      <h3 className="font-bold text-sm">Music</h3>
+                      <p className="text-xs opacity-90">Compositions, recordings</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 bg-gradient-to-br from-purple-500 to-violet-400 text-white border-0 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <MapPin className="w-6 h-6 mb-2" />
+                      <h3 className="font-bold text-sm">Film & Video</h3>
+                      <p className="text-xs opacity-90">Movies, documentaries</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </>
+          )}
+
           <FileUpload 
             sessionId={sessionId}
             files={files}
