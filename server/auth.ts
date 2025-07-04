@@ -39,7 +39,8 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export const isAuthenticated = (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) {
+  console.log("isAuthenticated check - authenticated:", req.isAuthenticated(), "user:", req.user?.id);
+  if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: "User not authenticated" });
   }
   next();
@@ -151,9 +152,16 @@ export function setupAuth(app: Express) {
   });
   passport.deserializeUser(async (id: string, done) => {
     try {
+      console.log("Deserializing user with ID:", id);
       const user = await storage.getUser(id);
+      if (!user) {
+        console.log("User not found during deserialization:", id);
+        return done(null, false);
+      }
+      console.log("User deserialized successfully:", user.id);
       done(null, user);
     } catch (error) {
+      console.log("Error during user deserialization:", error);
       done(error);
     }
   });

@@ -777,7 +777,7 @@ Provide only the title, no additional text.`;
   // Get user's conversation history
   app.get("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const conversations = await storage.getConversationsByUser(userId);
       
       // Get file counts for each conversation
@@ -804,7 +804,7 @@ Provide only the title, no additional text.`;
   // Delete conversation
   app.delete("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const conversationId = parseInt(req.params.id);
       
       // Get the conversation to verify ownership
@@ -847,7 +847,7 @@ Provide only the title, no additional text.`;
   // Get user subscription info and usage
   app.get("/api/subscription", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -907,7 +907,7 @@ Provide only the title, no additional text.`;
   // Update user profile
   app.put("/api/profile", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const { firstName, lastName, artistStatement, interests, profileImageUrl } = req.body;
 
       console.log('Profile update request:', { userId, firstName, lastName, artistStatement, interests: interests?.length, profileImageUrl });
@@ -940,7 +940,7 @@ Provide only the title, no additional text.`;
         return res.status(400).json({ message: "No image file provided" });
       }
 
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const fileExtension = path.extname(req.file.originalname);
       const fileName = `profile_${userId}_${Date.now()}${fileExtension}`;
       
@@ -985,7 +985,7 @@ Provide only the title, no additional text.`;
   // Compare files endpoint
   app.post("/api/compare-files", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const { sessionId, originalFileId, newFileId } = req.body;
 
       console.log('File comparison request:', { userId, sessionId, originalFileId, newFileId });
@@ -1165,7 +1165,7 @@ ${aiResponse}`;
   // Create Stripe checkout session for subscription
   app.post("/api/create-subscription", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const { plan } = req.body; // 'standard' or 'premium'
       
       const user = await storage.getUser(userId);
@@ -1240,7 +1240,7 @@ ${aiResponse}`;
   // Manual subscription sync - force sync with Stripe
   app.post("/api/sync-subscription", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -1314,7 +1314,7 @@ ${aiResponse}`;
   // Cancel subscription
   app.post("/api/cancel-subscription", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user?.id;
       const user = await storage.getUser(userId);
       
       if (!user || !user.stripeSubscriptionId) {
