@@ -286,8 +286,8 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div>
                       <Palette className="w-6 h-6 mb-2" />
-                      <h3 className="font-bold text-sm">Visual Arts</h3>
-                      <p className="text-xs opacity-90">Photography, painting, drawing</p>
+                      <h3 className="font-bold text-sm">1. Request Feedback</h3>
+                      <p className="text-xs opacity-90">Upload your media files (JPG, MP3, MP4, PDF) and recieve AI Tutor feedback.</p>
                     </div>
                   </div>
                 </Card>
@@ -295,8 +295,8 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div>
                       <BookOpen className="w-6 h-6 mb-2" />
-                      <h3 className="font-bold text-sm">Writing</h3>
-                      <p className="text-xs opacity-90">Stories, poetry, scripts</p>
+                      <h3 className="font-bold text-sm">2. Create Notes</h3>
+                      <p className="text-xs opacity-90">Create Notes from your feedback to refer to later.</p>
                     </div>
                   </div>
                 </Card>
@@ -304,8 +304,8 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div>
                       <Sparkles className="w-6 h-6 mb-2" />
-                      <h3 className="font-bold text-sm">Music</h3>
-                      <p className="text-xs opacity-90">Compositions, recordings</p>
+                      <h3 className="font-bold text-sm">3. Create Micro-Courses</h3>
+                      <p className="text-xs opacity-90">Select up to 3 Notes to generate a personalised course, based on your Feedback and Notes.</p>
                     </div>
                   </div>
                 </Card>
@@ -313,8 +313,8 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div>
                       <MapPin className="w-6 h-6 mb-2" />
-                      <h3 className="font-bold text-sm">Film & Video</h3>
-                      <p className="text-xs opacity-90">Movies, documentaries</p>
+                      <h3 className="font-bold text-sm">4. Make Cultural Discoveries</h3>
+                      <p className="text-xs opacity-90">Locate Cultural opportunities in your Local area to stimulate your creative potential.</p>
                     </div>
                   </div>
                 </Card>
