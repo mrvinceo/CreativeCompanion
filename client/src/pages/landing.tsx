@@ -96,7 +96,7 @@ export default function Landing() {
               size="lg" 
               variant="outline"
               className="text-lg px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/auth'}
             >
               Get Started Free
             </Button>

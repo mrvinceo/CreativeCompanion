@@ -256,7 +256,10 @@ export default function Home() {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => window.location.href = '/api/logout'}
+                    onClick={async () => {
+                      await fetch('/api/logout', { method: 'POST' });
+                      window.location.href = '/';
+                    }}
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     <span>Sign Out</span>
