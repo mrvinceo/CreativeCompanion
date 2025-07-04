@@ -222,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        const userId = (req.user as any)?.claims?.sub || null;
+        const userId = req.user?.id || null;
         const fileData = insertFileSchema.parse({
           filename: uniqueFilename,
           originalName: file.originalname,
@@ -1489,7 +1489,7 @@ ${aiResponse}`;
   app.post("/api/discover-locations", isAuthenticated, async (req: any, res) => {
     try {
       const { latitude, longitude, searchQuery, radius = 10 } = req.body;
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
 
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
@@ -1618,7 +1618,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   // Get user's discovered locations
   app.get("/api/discovered-locations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const locations = await storage.getDiscoveryLocationsByUser(userId);
       res.json({ locations });
     } catch (error) {
@@ -1631,7 +1631,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   app.post("/api/favorite-location", isAuthenticated, async (req: any, res) => {
     try {
       const { locationId, notes } = req.body;
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
 
       const favorite = await storage.createFavoriteLocation({
         userId,
@@ -1650,7 +1650,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   app.delete("/api/favorite-location/:locationId", isAuthenticated, async (req: any, res) => {
     try {
       const { locationId } = req.params;
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
 
       await storage.removeFavoriteLocation(userId, parseInt(locationId));
       res.json({ message: "Location removed from favorites" });
@@ -1663,7 +1663,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   // Get user's favorite locations
   app.get("/api/favorite-locations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const favorites = await storage.getFavoriteLocationsByUser(userId);
       res.json({ favorites });
     } catch (error) {
@@ -1676,7 +1676,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   app.post("/api/save-discovery", isAuthenticated, async (req: any, res) => {
     try {
       const { name, description, centerLatitude, centerLongitude, locationIds, searchQuery } = req.body;
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
 
       const user = await storage.getUser(userId);
       const discovery = await storage.createSavedDiscovery({
@@ -1700,7 +1700,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   // Get saved discoveries
   app.get("/api/saved-discoveries", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const discoveries = await storage.getSavedDiscoveriesByUser(userId);
       res.json({ discoveries });
     } catch (error) {
@@ -1713,7 +1713,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   // Create a new note
   app.post("/api/notes", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const noteData = insertNoteSchema.parse({ ...req.body, userId });
       
       const note = await storage.createNote(noteData);
@@ -1727,7 +1727,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   // Get all notes for a user
   app.get("/api/notes", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const notes = await storage.getNotesByUser(userId);
       res.json({ notes });
     } catch (error) {
@@ -1751,7 +1751,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   // Search notes
   app.get("/api/notes/search", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const { q } = req.query;
       
       if (!q || typeof q !== 'string') {
@@ -1795,7 +1795,7 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
   // Extract notes from AI feedback message
   app.post("/api/extract-notes", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const { conversationId, messageContent, messageId } = req.body;
 
       if (!conversationId || !messageContent) {
@@ -1926,7 +1926,7 @@ If no valuable insights are found, return: {"items": []}`;
   // Generate micro course
   app.post("/api/generate-micro-course", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const { courseTitle, selectedNotes } = req.body;
 
       if (!courseTitle || !selectedNotes || !Array.isArray(selectedNotes) || selectedNotes.length === 0) {
@@ -2026,7 +2026,7 @@ If no valuable insights are found, return: {"items": []}`;
   // Get user's micro courses
   app.get("/api/micro-courses", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const courses = await storage.getMicroCoursesByUser(userId);
       res.json({ courses });
     } catch (error) {
@@ -2038,7 +2038,7 @@ If no valuable insights are found, return: {"items": []}`;
   // Get specific micro course
   app.get("/api/micro-courses/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const { id } = req.params;
       const course = await storage.getMicroCourse(parseInt(id));
       
@@ -2056,7 +2056,7 @@ If no valuable insights are found, return: {"items": []}`;
   // Delete micro course
   app.delete("/api/micro-courses/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const { id } = req.params;
       const course = await storage.getMicroCourse(parseInt(id));
       
