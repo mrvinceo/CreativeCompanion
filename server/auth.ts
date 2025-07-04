@@ -93,6 +93,7 @@ export function setupAuth(app: Express) {
   // Google OAuth strategy
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport.use(
+      "google",
       new GoogleStrategy(
         {
           clientID: process.env.GOOGLE_CLIENT_ID,
