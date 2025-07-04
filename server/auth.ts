@@ -47,7 +47,7 @@ export function setupAuth(app: Express) {
     tableName: "sessions",
   });
 
-  const sessionSecret = process.env.SESSION_SECRET || 'secure-session-secret-' + Math.random().toString(36).substring(2, 15);
+  const sessionSecret = process.env.SESSION_SECRET || 'development-session-secret-12345';
 
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
@@ -196,6 +196,13 @@ export function setupAuth(app: Express) {
     req.logout((err) => {
       if (err) return next(err);
       res.json({ success: true });
+    });
+  });
+
+  app.get("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) return next(err);
+      res.redirect("/auth");
     });
   });
 

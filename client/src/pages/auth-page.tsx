@@ -203,6 +203,7 @@ export default function AuthPage() {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input 
+                            id="login-email"
                             type="email" 
                             placeholder="Enter your email" 
                             autoComplete="email"
@@ -275,6 +276,7 @@ export default function AuthPage() {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input 
+                            id="register-email"
                             type="email" 
                             placeholder="Enter your email" 
                             autoComplete="email"
