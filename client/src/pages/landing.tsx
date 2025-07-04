@@ -11,7 +11,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* <RefynLogo size={80} showTitle={true} /> */}
           <Button 
-            onClick={() => window.location.href = '/api/login'}
+            onClick={() => window.location.href = '/auth'}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Sign In
@@ -34,7 +34,7 @@ export default function Landing() {
             <Button 
               size="lg" 
               className="text-lg px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/auth'}
             >
               Get Started
             </Button>
