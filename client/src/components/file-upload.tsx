@@ -127,7 +127,7 @@ export function FileUpload({ sessionId, files, onFilesChange }: FileUploadProps)
             </p>
           </div>
           {!uploading && (
-            <Button variant="default">
+            <Button variant="default" type="button">
               Choose Files
             </Button>
           )}
