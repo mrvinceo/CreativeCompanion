@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { z } from "zod";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import logoPath from "@assets/Asset 8@4x_1751642744375.png";
 
@@ -53,6 +53,9 @@ export default function RegisterPage() {
       });
 
       if (response.ok) {
+        // Invalidate the user query to refresh authentication state
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
         toast({
           title: "Registration successful!",
           description: "Welcome to Refyn. You can now start getting AI feedback on your creative work.",

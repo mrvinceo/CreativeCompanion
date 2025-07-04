@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { z } from "zod";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import logoPath from "@assets/Asset 8@4x_1751642744375.png";
 
@@ -39,6 +39,9 @@ export default function LoginPage() {
       const response = await apiRequest("POST", "/api/auth/login", data);
       
       if (response.ok) {
+        // Invalidate the user query to refresh authentication state
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
