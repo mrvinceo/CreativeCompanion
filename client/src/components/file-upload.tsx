@@ -61,6 +61,9 @@ export function FileUpload({ sessionId, files, onFilesChange }: FileUploadProps)
     },
     maxSize: MAX_FILE_SIZE,
     disabled: uploading,
+    preventDropOnDocument: true,
+    noClick: false,
+    noKeyboard: true,
   });
 
   const removeFile = async (fileId: number) => {
@@ -127,9 +130,9 @@ export function FileUpload({ sessionId, files, onFilesChange }: FileUploadProps)
             </p>
           </div>
           {!uploading && (
-            <Button variant="default" type="button">
+            <div className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
               Choose Files
-            </Button>
+            </div>
           )}
         </div>
       </div>
