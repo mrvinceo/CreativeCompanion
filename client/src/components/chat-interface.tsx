@@ -320,8 +320,8 @@ export function ChatInterface({
               <div className={`flex-1 min-w-0 ${message.role === 'user' ? 'flex justify-end' : ''}`}>
                 <div className={`rounded-lg p-4 ${
                   message.role === 'user' 
-                    ? 'bg-primary text-white max-w-xs lg:max-w-md' 
-                    : 'bg-slate-50'
+                    ? 'bg-gradient-to-br from-primary to-yellow-400 text-black max-w-xs lg:max-w-md font-medium' 
+                    : 'bg-gradient-to-br from-green-500 to-emerald-400 text-white'
                 }`}>
                   {message.role === 'ai' ? (
                     (() => {
@@ -334,19 +334,19 @@ export function ChatInterface({
                               newFile={comparisonData.newFile}
                             />
                           )}
-                          <div className="prose prose-sm max-w-none">
+                          <div className="prose prose-sm max-w-none prose-invert">
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
-                                p: ({ children }) => <p className="whitespace-pre-wrap">{children}</p>,
-                                h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                                h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
-                                h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
-                                ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
-                                ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
-                                li: ({ children }) => <li className="mb-1">{children}</li>,
-                                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                                em: ({ children }) => <em className="italic">{children}</em>,
+                                p: ({ children }) => <p className="whitespace-pre-wrap text-white">{children}</p>,
+                                h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-white">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-base font-bold mb-2 text-white">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-white">{children}</h3>,
+                                ul: ({ children }) => <ul className="list-disc pl-4 mb-2 text-white">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 text-white">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1 text-white">{children}</li>,
+                                strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                                em: ({ children }) => <em className="italic text-white">{children}</em>,
                               }}
                             >
                               {cleanContent}
@@ -363,16 +363,16 @@ export function ChatInterface({
                 </div>
                 
                 {message.role === 'ai' && (
-                  <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-2 text-xs text-slate-500">
+                  <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-2 text-xs text-white/80">
                     <span>{formatTimestamp(message.createdAt)}</span>
                     <button 
                       onClick={() => copyToClipboard(message.content)}
-                      className="hover:text-slate-700 transition-colors flex items-center"
+                      className="hover:text-white transition-colors flex items-center"
                     >
                       <Copy className="w-3 h-3 mr-1" />
                       Copy
                     </button>
-                    <button className="hover:text-slate-700 transition-colors flex items-center">
+                    <button className="hover:text-white transition-colors flex items-center">
                       <ThumbsUp className="w-3 h-3 mr-1" />
                       Helpful
                     </button>

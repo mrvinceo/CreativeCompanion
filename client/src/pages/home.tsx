@@ -322,24 +322,27 @@ export default function Home() {
             </>
           )}
 
-          <FileUpload 
-            sessionId={sessionId}
-            files={files}
-            onFilesChange={setFiles}
-          />
+          {/* Only show upload panel if no conversation exists or no AI responses yet */}
+          {(!conversation || messages.length === 0) && (
+            <FileUpload 
+              sessionId={sessionId}
+              files={files}
+              onFilesChange={setFiles}
+            />
+          )}
 
           {files.length > 0 && <FilePreview files={files} />}
 
           {/* Media Type & Context Section */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-              <Lightbulb className="w-5 h-5 text-warning mr-2" />
+          <Card className="p-6 bg-gradient-to-br from-purple-500 to-violet-400 text-white border-0 shadow-lg">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <Lightbulb className="w-5 h-5 text-white mr-2" />
               Creative Medium & Context
             </h2>
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="media-type" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="media-type" className="text-sm font-medium text-white">
                   Select Your Creative Medium
                 </Label>
                 <Select 
@@ -361,7 +364,7 @@ export default function Home() {
               </div>
 
               <div>
-                <Label htmlFor="context-prompt" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="context-prompt" className="text-sm font-medium text-white">
                   Additional Context & Instructions
                 </Label>
                 <Textarea
@@ -382,7 +385,7 @@ Examples:
             </div>
 
             <div className="flex items-center justify-between mt-6">
-              <div className="flex items-center space-x-4 text-sm text-slate-500">
+              <div className="flex items-center space-x-4 text-sm text-white/80">
                 <span>{files.length} files ready</span>
                 {mediaType && <span>{MEDIA_TYPES[mediaType].label}</span>}
                 <span>Gemini 2.0</span>
