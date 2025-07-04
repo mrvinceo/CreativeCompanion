@@ -279,8 +279,12 @@ export default function AuthPage() {
                             id="register-email"
                             type="email" 
                             placeholder="Enter your email" 
-                            autoComplete="email"
-                            {...field} 
+                            autoComplete="off"
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
                           />
                         </FormControl>
                         <FormMessage />

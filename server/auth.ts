@@ -52,8 +52,8 @@ export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
     store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -108,6 +108,7 @@ export function setupAuth(app: Express) {
             }
 
             let user = await storage.getUserByEmail(email);
+            
             if (!user) {
               // Create new user
               user = await storage.createUser({
@@ -137,7 +138,9 @@ export function setupAuth(app: Express) {
     );
   }
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    done(null, user.id);
+  });
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
@@ -205,6 +208,8 @@ export function setupAuth(app: Express) {
       res.redirect("/auth");
     });
   });
+
+
 
   app.get("/api/auth/user", (req, res) => {
     if (!req.isAuthenticated()) {
