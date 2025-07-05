@@ -1,4 +1,4 @@
-const CACHE_NAME = 'refyn-v1';
+const CACHE_NAME = 'refyn-v2';
 const urlsToCache = [
   '/',
   '/src/main.tsx',
