@@ -17,7 +17,7 @@ interface SubscriptionData {
 }
 
 export function SubscriptionStatus() {
-  const [upgrading, setUpgrading] = useState(false);
+  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -28,7 +28,7 @@ export function SubscriptionStatus() {
 
   const handleUpgrade = async (plan: 'standard' | 'premium') => {
     try {
-      setUpgrading(true);
+      setUpgradingPlan(plan);
       const response = await apiRequest('POST', '/api/create-subscription', { plan });
       const data = await response.json();
       
@@ -50,7 +50,7 @@ export function SubscriptionStatus() {
         variant: "destructive",
       });
     } finally {
-      setUpgrading(false);
+      setUpgradingPlan(null);
     }
   };
 
@@ -168,17 +168,17 @@ export function SubscriptionStatus() {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h5 className="font-medium">Standard</h5>
-                  <p className="text-xs text-slate-600">30 conversations/month</p>
+                  <p className="text-xs text-slate-600">15 conversations/month</p>
                 </div>
                 <span className="text-lg font-bold">£10</span>
               </div>
               <Button 
                 size="sm" 
                 onClick={() => handleUpgrade('standard')}
-                disabled={upgrading}
+                disabled={upgradingPlan === 'standard'}
                 className="w-full"
               >
-                {upgrading ? 'Processing...' : 'Upgrade'}
+                {upgradingPlan === 'standard' ? 'Processing...' : 'Upgrade'}
                 <ExternalLink className="w-3 h-3 ml-1" />
               </Button>
             </div>
@@ -187,17 +187,17 @@ export function SubscriptionStatus() {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h5 className="font-medium">Premium</h5>
-                  <p className="text-xs text-slate-600">50 conversations/month</p>
+                  <p className="text-xs text-slate-600">40 conversations/month</p>
                 </div>
                 <span className="text-lg font-bold">£15</span>
               </div>
               <Button 
                 size="sm" 
                 onClick={() => handleUpgrade('premium')}
-                disabled={upgrading}
+                disabled={upgradingPlan === 'premium'}
                 className="w-full bg-purple-600 hover:bg-purple-700"
               >
-                {upgrading ? 'Processing...' : 'Upgrade'}
+                {upgradingPlan === 'premium' ? 'Processing...' : 'Upgrade'}
                 <ExternalLink className="w-3 h-3 ml-1" />
               </Button>
             </div>

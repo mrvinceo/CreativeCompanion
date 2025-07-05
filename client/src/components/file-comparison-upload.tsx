@@ -150,7 +150,7 @@ export function FileComparisonUpload({
 
   // Show limit reached notice
   if (!canUploadMore()) {
-    const limit = subscription?.subscriptionPlan === 'standard' ? 2 : 5;
+    const limit = subscription?.subscriptionPlan === 'standard' ? 5 : 10;
     return (
       <Card className="p-3 border-yellow-200 bg-yellow-50">
         <div className="flex items-center gap-2">

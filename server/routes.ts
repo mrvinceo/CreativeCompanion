@@ -345,8 +345,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to get usage limits
   const getUsageLimit = (user: any) => {
     if (user.email?.endsWith('oca.ac.uk')) return 50; // Academic users
-    if (user.subscriptionPlan === 'premium') return 50; // £15/month
-    if (user.subscriptionPlan === 'standard') return 30; // £10/month
+    if (user.subscriptionPlan === 'premium') return 40; // £15/month
+    if (user.subscriptionPlan === 'standard') return 15; // £10/month
     return 5; // Free users
   };
 
@@ -997,7 +997,7 @@ Provide only the title, no additional text.`;
       }
 
       const isAcademic = user.email?.endsWith('.ac.uk') || user.email?.endsWith('.edu');
-      const limit = isAcademic ? 50 : (user.subscriptionPlan === 'premium' ? 50 : user.subscriptionPlan === 'standard' ? 30 : 10);
+      const limit = getUsageLimit(user);
       
       if ((user.conversationsThisMonth || 0) >= limit) {
         return res.status(403).json({ 

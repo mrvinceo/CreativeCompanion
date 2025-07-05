@@ -71,7 +71,7 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
   const [open, setOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [upgrading, setUpgrading] = useState(false);
+  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const { user } = useAuth();
@@ -109,7 +109,7 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
 
   const handleUpgrade = async (plan: 'standard' | 'premium') => {
     try {
-      setUpgrading(true);
+      setUpgradingPlan(plan);
       const response = await apiRequest('POST', '/api/create-subscription', { plan });
       const data = await response.json();
       
@@ -123,7 +123,7 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
         variant: "destructive",
       });
     } finally {
-      setUpgrading(false);
+      setUpgradingPlan(null);
     }
   };
 
@@ -488,17 +488,17 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <h5 className="font-medium">Standard</h5>
-                              <p className="text-xs text-muted-foreground">30 conversations/month + 2 improved versions per conversation</p>
+                              <p className="text-xs text-muted-foreground">15 conversations/month + 5 improved versions per conversation</p>
                             </div>
                             <span className="text-lg font-bold">£10/mo</span>
                           </div>
                           <Button 
                             size="sm" 
                             onClick={() => handleUpgrade('standard')}
-                            disabled={upgrading}
+                            disabled={upgradingPlan === 'standard'}
                             className="w-full"
                           >
-                            {upgrading ? 'Processing...' : 'Upgrade to Standard'}
+                            {upgradingPlan === 'standard' ? 'Processing...' : 'Upgrade to Standard'}
                             <ExternalLink className="w-3 h-3 ml-1" />
                           </Button>
                         </div>
@@ -507,17 +507,17 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <h5 className="font-medium">Premium</h5>
-                              <p className="text-xs text-muted-foreground">50 conversations/month + 5 improved versions per conversation</p>
+                              <p className="text-xs text-muted-foreground">40 conversations/month + 10 improved versions per conversation</p>
                             </div>
                             <span className="text-lg font-bold">£15/mo</span>
                           </div>
                           <Button 
                             size="sm" 
                             onClick={() => handleUpgrade('premium')}
-                            disabled={upgrading}
+                            disabled={upgradingPlan === 'premium'}
                             className="w-full bg-purple-600 hover:bg-purple-700"
                           >
-                            {upgrading ? 'Processing...' : 'Upgrade to Premium'}
+                            {upgradingPlan === 'premium' ? 'Processing...' : 'Upgrade to Premium'}
                             <ExternalLink className="w-3 h-3 ml-1" />
                           </Button>
                         </div>
@@ -533,17 +533,17 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <h5 className="font-medium">Upgrade to Premium</h5>
-                              <p className="text-xs text-muted-foreground">50 conversations/month + 5 improved versions per conversation</p>
+                              <p className="text-xs text-muted-foreground">40 conversations/month + 10 improved versions per conversation</p>
                             </div>
                             <span className="text-lg font-bold">£15/mo</span>
                           </div>
                           <Button 
                             size="sm" 
                             onClick={() => handleUpgrade('premium')}
-                            disabled={upgrading}
+                            disabled={upgradingPlan === 'premium'}
                             className="w-full bg-purple-600 hover:bg-purple-700"
                           >
-                            {upgrading ? 'Processing...' : 'Upgrade to Premium'}
+                            {upgradingPlan === 'premium' ? 'Processing...' : 'Upgrade to Premium'}
                             <ExternalLink className="w-3 h-3 ml-1" />
                           </Button>
                         </div>
