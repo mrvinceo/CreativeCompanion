@@ -2,7 +2,7 @@
   "name": "Refyn - AI-Powered Creative Feedback",
   "short_name": "Refyn",
   "description": "Get personalized AI feedback to refine your artistic vision",
-  "start_url": "/",
+  "start_url": "/?utm_source=pwa",
   "display": "standalone",
   "background_color": "#FEF7ED",
   "theme_color": "#F5A623",

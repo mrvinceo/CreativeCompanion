@@ -7,6 +7,7 @@ export function PWAInstallButton() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
     const { showInstallPrompt, canInstall } = setupPWAInstallPrompt();
@@ -23,19 +24,29 @@ export function PWAInstallButton() {
 
     checkIfInstalled();
 
+    // Show fallback button after 2 seconds if no install prompt
+    const fallbackTimer = setTimeout(() => {
+      if (!isInstalled && !isInstallable) {
+        setShowFallback(true);
+      }
+    }, 2000);
+
     const handleInstallable = () => {
       setIsInstallable(true);
+      setShowFallback(false);
     };
 
     const handleInstalled = () => {
       setIsInstalled(true);
       setIsInstallable(false);
+      setShowFallback(false);
     };
 
     window.addEventListener('pwa-installable', handleInstallable);
     window.addEventListener('pwa-installed', handleInstalled);
 
     return () => {
+      clearTimeout(fallbackTimer);
       window.removeEventListener('pwa-installable', handleInstallable);
       window.removeEventListener('pwa-installed', handleInstalled);
     };
@@ -44,11 +55,19 @@ export function PWAInstallButton() {
   const handleInstall = async () => {
     if (installPrompt) {
       await installPrompt();
+    } else {
+      // Fallback: show instructions
+      alert('To install this app:\n\n• On Chrome/Edge: Look for the install icon in the address bar\n• On Safari: Tap Share > Add to Home Screen\n• On Firefox: Look for the install option in the menu');
     }
   };
 
-  // Don't show button if already installed or not installable
-  if (isInstalled || !isInstallable) {
+  // Don't show button if already installed
+  if (isInstalled) {
+    return null;
+  }
+
+  // Show button if installable or fallback is enabled
+  if (!isInstallable && !showFallback) {
     return null;
   }
 
