@@ -13,6 +13,7 @@ import { SubscriptionStatus } from '@/components/subscription-status';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { RefynLogo } from '@/components/refyn-logo';
 import { MobileLayout } from '@/components/mobile-layout';
+import { PWAInstallButton } from '@/components/pwa-install-button';
 import { type UploadedFile, type ChatMessage, type Conversation } from '@/lib/types';
 import { MEDIA_TYPES, type MediaType } from '@/lib/media-types';
 import { useAuth } from '@/hooks/useAuth';
@@ -235,6 +236,7 @@ export default function Home() {
                     <Plus className="w-4 h-4 mr-2" />
                     <span>New</span>
                   </Button>
+                  <PWAInstallButton />
                   <ProfileDialog>
                     <Button variant="ghost" size="sm" className="flex items-center gap-2">
                       {user.profileImageUrl ? (
