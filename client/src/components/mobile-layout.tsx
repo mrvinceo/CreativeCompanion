@@ -72,9 +72,7 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
           <div className="w-10"></div> {/* Spacer for centering */}
           <RefynLogo size={94} showTitle={false} />
           <div className="flex items-center space-x-2">
-            <div className="text-white">
-              <PWAInstallButton />
-            </div>
+            <PWAInstallButton />
             <ProfileDialog>
               <Button variant="ghost" size="sm" className="p-2 text-white hover:bg-gray-800">
                 {user.profileImageUrl ? (

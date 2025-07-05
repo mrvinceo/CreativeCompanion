@@ -55,9 +55,9 @@ export function PWAInstallButton() {
   return (
     <Button
       onClick={handleInstall}
-      variant="outline"
+      variant="default"
       size="sm"
-      className="gap-2"
+      className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
     >
       <Smartphone className="w-4 h-4" />
       Install App
