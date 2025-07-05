@@ -44,4 +44,18 @@ export const SUPPORTED_FILE_TYPES = {
   'application/pdf': 'PDF'
 };
 
-export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB default
+
+export const getMaxFileSize = (subscriptionPlan: string, isAcademic: boolean = false) => {
+  if (isAcademic) return 100 * 1024 * 1024; // 100MB
+  if (subscriptionPlan === 'premium') return 100 * 1024 * 1024; // 100MB
+  if (subscriptionPlan === 'standard') return 80 * 1024 * 1024; // 80MB
+  return 30 * 1024 * 1024; // 30MB for free
+};
+
+export const getMaxFilesPerConversation = (subscriptionPlan: string, isAcademic: boolean = false) => {
+  if (isAcademic) return 15;
+  if (subscriptionPlan === 'premium') return 15;
+  if (subscriptionPlan === 'standard') return 10;
+  return 5; // Free
+};

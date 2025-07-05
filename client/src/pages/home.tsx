@@ -10,6 +10,7 @@ import { FilePreview } from '@/components/file-preview';
 import { ChatInterface } from '@/components/chat-interface';
 import { ConversationHistory } from '@/components/conversation-history';
 import { SubscriptionStatus } from '@/components/subscription-status';
+import { SubscriptionLimitsDisplay } from '@/components/subscription-limits-display';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { RefynLogo } from '@/components/refyn-logo';
 import { MobileLayout } from '@/components/mobile-layout';
@@ -278,6 +279,7 @@ export default function Home() {
         {/* Upload Panel */}
         <div className="lg:w-1/2 space-y-6">
           <SubscriptionStatus />
+          <SubscriptionLimitsDisplay />
 
           {/* Feature Cards - GiffGaff Style */}
           {!conversation && files.length === 0 && (

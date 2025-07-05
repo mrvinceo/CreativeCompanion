@@ -59,9 +59,9 @@ export function FileComparisonUpload({
   const improvedVersionCount = getImprovedVersionCount();
   const canUploadMore = () => {
     if (!subscription) return false;
-    if (subscription.subscriptionPlan === 'free' && !subscription.isAcademic) return false;
-    if (subscription.subscriptionPlan === 'standard') return improvedVersionCount < 2;
-    if (subscription.subscriptionPlan === 'premium' || subscription.isAcademic) return improvedVersionCount < 5;
+    if (subscription.subscriptionPlan === 'free' && !subscription.isAcademic) return improvedVersionCount < 2;
+    if (subscription.subscriptionPlan === 'standard') return improvedVersionCount < 5;
+    if (subscription.subscriptionPlan === 'premium' || subscription.isAcademic) return improvedVersionCount < 10;
     return false;
   };
 
@@ -150,7 +150,8 @@ export function FileComparisonUpload({
 
   // Show limit reached notice
   if (!canUploadMore()) {
-    const limit = subscription?.subscriptionPlan === 'standard' ? 5 : 10;
+    const limit = subscription?.subscriptionPlan === 'premium' ? 10 : 
+                  subscription?.subscriptionPlan === 'standard' ? 5 : 2;
     return (
       <Card className="p-3 border-yellow-200 bg-yellow-50">
         <div className="flex items-center gap-2">

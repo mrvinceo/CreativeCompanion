@@ -175,9 +175,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes are handled in setupAuth function
 
   // Upload files endpoint
-  app.post("/api/upload", isAuthenticated, upload.array("files", 10), async (req: any, res) => {
+  app.post("/api/upload", isAuthenticated, upload.array("files", 15), async (req: any, res) => {
     try {
       const { sessionId } = req.body;
+      const userId = req.user?.id;
 
       if (!sessionId) {
         return res.status(400).json({ message: "Session ID is required" });
@@ -185,6 +186,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!req.files || !Array.isArray(req.files)) {
         return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      // Get user for limits validation
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get existing files for this session to check limits
+      const existingFiles = await storage.getFilesBySession(sessionId);
+      const maxFiles = getMaxFilesPerConversation(user);
+      const maxFileSize = getMaxFileSizeBytes(user);
+
+      // Check if adding these files would exceed the limit
+      if (existingFiles.length + req.files.length > maxFiles) {
+        return res.status(400).json({ 
+          message: `Maximum ${maxFiles} files allowed per conversation`,
+          limit: maxFiles,
+          current: existingFiles.length
+        });
+      }
+
+      // Check individual file sizes
+      for (const file of req.files) {
+        if (file.size > maxFileSize) {
+          const maxSizeMB = Math.round(maxFileSize / (1024 * 1024));
+          return res.status(400).json({ 
+            message: `File "${file.originalname}" exceeds maximum size of ${maxSizeMB}MB`,
+            maxSize: maxSizeMB
+          });
+        }
       }
 
       const uploadedFiles = [];
@@ -342,12 +374,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Helper function to get usage limits
+  // Helper functions to get various limits based on subscription
   const getUsageLimit = (user: any) => {
     if (user.email?.endsWith('oca.ac.uk')) return 50; // Academic users
     if (user.subscriptionPlan === 'premium') return 40; // £15/month
     if (user.subscriptionPlan === 'standard') return 15; // £10/month
     return 5; // Free users
+  };
+
+  const getMaxFilesPerConversation = (user: any) => {
+    if (user.email?.endsWith('oca.ac.uk')) return 15; // Academic users
+    if (user.subscriptionPlan === 'premium') return 15; // £15/month
+    if (user.subscriptionPlan === 'standard') return 10; // £10/month
+    return 5; // Free users
+  };
+
+  const getMaxFileSizeBytes = (user: any) => {
+    if (user.email?.endsWith('oca.ac.uk')) return 100 * 1024 * 1024; // Academic users - 100MB
+    if (user.subscriptionPlan === 'premium') return 100 * 1024 * 1024; // £15/month - 100MB
+    if (user.subscriptionPlan === 'standard') return 80 * 1024 * 1024; // £10/month - 80MB
+    return 30 * 1024 * 1024; // Free users - 30MB
+  };
+
+  const getMaxRepliesPerConversation = (user: any) => {
+    if (user.email?.endsWith('oca.ac.uk')) return 15; // Academic users
+    if (user.subscriptionPlan === 'premium') return 15; // £15/month
+    if (user.subscriptionPlan === 'standard') return 8; // £10/month
+    return 3; // Free users
+  };
+
+  const getMaxImprovedVersions = (user: any) => {
+    if (user.email?.endsWith('oca.ac.uk')) return 10; // Academic users
+    if (user.subscriptionPlan === 'premium') return 10; // £15/month
+    if (user.subscriptionPlan === 'standard') return 5; // £10/month
+    return 2; // Free users
   };
 
   // Helper function to check if user has exceeded limits
@@ -612,9 +672,10 @@ Provide only the title, no additional text.`;
   });
 
   // Send follow-up message
-  app.post("/api/chat", async (req, res) => {
+  app.post("/api/chat", isAuthenticated, async (req: any, res) => {
     try {
       const { sessionId, message } = req.body;
+      const userId = req.user?.id;
 
       if (!sessionId || !message) {
         return res.status(400).json({ message: "Session ID and message are required" });
@@ -623,6 +684,25 @@ Provide only the title, no additional text.`;
       const conversation = await storage.getConversationBySession(sessionId);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      // Get user for limits validation
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check reply count limit
+      const existingMessages = await storage.getMessagesByConversation(conversation.id);
+      const userMessages = existingMessages.filter(msg => msg.role === 'user');
+      const maxReplies = getMaxRepliesPerConversation(user);
+
+      if (userMessages.length >= maxReplies) {
+        return res.status(403).json({ 
+          message: `Maximum ${maxReplies} replies reached for this conversation`,
+          limit: maxReplies,
+          used: userMessages.length
+        });
       }
 
       // Save user message

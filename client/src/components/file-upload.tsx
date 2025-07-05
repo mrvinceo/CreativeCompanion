@@ -3,9 +3,10 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Upload, X, FileText, Music, Video, Image } from 'lucide-react';
-import { SUPPORTED_FILE_TYPES, MAX_FILE_SIZE, type UploadedFile } from '@/lib/types';
+import { SUPPORTED_FILE_TYPES, MAX_FILE_SIZE, getMaxFileSize, getMaxFilesPerConversation, type UploadedFile } from '@/lib/types';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 interface FileUploadProps {
   sessionId: string;
@@ -13,12 +14,53 @@ interface FileUploadProps {
   onFilesChange: (files: UploadedFile[]) => void;
 }
 
+interface SubscriptionData {
+  subscriptionPlan: 'free' | 'standard' | 'premium' | 'academic';
+  subscriptionStatus?: string;
+  conversationsThisMonth: number;
+  conversationLimit: number;
+  isAcademic: boolean;
+}
+
 export function FileUpload({ sessionId, files, onFilesChange }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
+  const { data: subscription } = useQuery<SubscriptionData>({
+    queryKey: ['/api/subscription'],
+  });
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
+
+    // Check subscription limits before upload
+    if (subscription) {
+      const maxFiles = getMaxFilesPerConversation(subscription.subscriptionPlan, subscription.isAcademic);
+      const maxFileSize = getMaxFileSize(subscription.subscriptionPlan, subscription.isAcademic);
+
+      // Check file count limit
+      if (files.length + acceptedFiles.length > maxFiles) {
+        toast({
+          title: "File limit exceeded",
+          description: `Maximum ${maxFiles} files allowed per conversation`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check individual file sizes
+      for (const file of acceptedFiles) {
+        if (file.size > maxFileSize) {
+          const maxSizeMB = Math.round(maxFileSize / (1024 * 1024));
+          toast({
+            title: "File size too large",
+            description: `"${file.name}" exceeds maximum size of ${maxSizeMB}MB`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
 
     setUploading(true);
 
@@ -39,17 +81,27 @@ export function FileUpload({ sessionId, files, onFilesChange }: FileUploadProps)
         title: "Files uploaded successfully",
         description: `${acceptedFiles.length} file(s) uploaded`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload files. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Handle specific error messages from backend
+      if (error.message?.includes('Maximum') || error.message?.includes('exceeds')) {
+        toast({
+          title: "Upload failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload files. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setUploading(false);
     }
-  }, [sessionId, files, onFilesChange, toast]);
+  }, [sessionId, files, onFilesChange, toast, subscription]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
