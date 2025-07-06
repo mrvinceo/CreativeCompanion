@@ -1,5 +1,5 @@
 import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, notes, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type Note, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery, type InsertNote } from "@shared/schema";
-import { microCourses, assignmentConversations, assignmentMessages, assignmentFiles, type AssignmentConversation, type AssignmentMessage, type AssignmentFile, type InsertAssignmentConversation, type InsertAssignmentMessage, type InsertAssignmentFile } from "@shared/schema";
+import { microCourses } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, ilike, desc } from "drizzle-orm";
 
@@ -118,21 +118,6 @@ export interface IStorage {
   deleteMicroCourse(id: number): Promise<void>;
 
   getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | null>;
-
-  // Assignment conversation operations
-  createAssignmentConversation(conversation: InsertAssignmentConversation): Promise<AssignmentConversation>;
-  getAssignmentConversationBySession(sessionId: string): Promise<AssignmentConversation | undefined>;
-  getAssignmentConversationsByUser(userId: string): Promise<AssignmentConversation[]>;
-  deleteAssignmentConversation(conversationId: number): Promise<void>;
-
-  // Assignment message operations
-  createAssignmentMessage(message: InsertAssignmentMessage): Promise<AssignmentMessage>;
-  getAssignmentMessagesByConversation(conversationId: number): Promise<AssignmentMessage[]>;
-
-  // Assignment file operations
-  createAssignmentFile(file: InsertAssignmentFile): Promise<AssignmentFile>;
-  getAssignmentFilesByConversation(conversationId: number): Promise<AssignmentFile[]>;
-  deleteAssignmentFile(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -557,55 +542,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.stripeCustomerId, stripeCustomerId));
 
     return user ? user[0] : null;
-  }
-
-  // Assignment conversation operations
-  async createAssignmentConversation(insertConversation: InsertAssignmentConversation): Promise<AssignmentConversation> {
-    const [conversation] = await db.insert(assignmentConversations).values(insertConversation).returning();
-    return conversation;
-  }
-
-  async getAssignmentConversationBySession(sessionId: string): Promise<AssignmentConversation | undefined> {
-    const [conversation] = await db.select().from(assignmentConversations).where(eq(assignmentConversations.sessionId, sessionId));
-    return conversation;
-  }
-
-  async getAssignmentConversationsByUser(userId: string): Promise<AssignmentConversation[]> {
-    return await db.select().from(assignmentConversations)
-      .where(eq(assignmentConversations.userId, userId))
-      .orderBy(desc(assignmentConversations.updatedAt));
-  }
-
-  async deleteAssignmentConversation(conversationId: number): Promise<void> {
-    await db.delete(assignmentConversations).where(eq(assignmentConversations.id, conversationId));
-  }
-
-  // Assignment message operations
-  async createAssignmentMessage(insertMessage: InsertAssignmentMessage): Promise<AssignmentMessage> {
-    const [message] = await db.insert(assignmentMessages).values(insertMessage).returning();
-    return message;
-  }
-
-  async getAssignmentMessagesByConversation(conversationId: number): Promise<AssignmentMessage[]> {
-    return await db.select().from(assignmentMessages)
-      .where(eq(assignmentMessages.conversationId, conversationId))
-      .orderBy(assignmentMessages.createdAt);
-  }
-
-  // Assignment file operations
-  async createAssignmentFile(insertFile: InsertAssignmentFile): Promise<AssignmentFile> {
-    const [file] = await db.insert(assignmentFiles).values(insertFile).returning();
-    return file;
-  }
-
-  async getAssignmentFilesByConversation(conversationId: number): Promise<AssignmentFile[]> {
-    return await db.select().from(assignmentFiles)
-      .where(eq(assignmentFiles.conversationId, conversationId))
-      .orderBy(assignmentFiles.uploadedAt);
-  }
-
-  async deleteAssignmentFile(id: number): Promise<void> {
-    await db.delete(assignmentFiles).where(eq(assignmentFiles.id, id));
   }
 }
 

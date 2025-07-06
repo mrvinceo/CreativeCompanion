@@ -144,35 +144,6 @@ export const microCourses = pgTable("micro_courses", {
   completedAt: timestamp("completed_at"),
 });
 
-export const assignmentConversations = pgTable("assignment_conversations", {
-  id: serial("id").primaryKey(),
-  sessionId: varchar("session_id", { length: 255 }).notNull().unique(),
-  courseId: integer("course_id").notNull().references(() => microCourses.id, { onDelete: "cascade" }),
-  userId: varchar("user_id", { length: 255 }).notNull(),
-  assignmentText: text("assignment_text").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const assignmentMessages = pgTable("assignment_messages", {
-  id: serial("id").primaryKey(),
-  conversationId: integer("conversation_id").notNull().references(() => assignmentConversations.id, { onDelete: "cascade" }),
-  role: varchar("role", { length: 20 }).notNull(), // 'user' or 'assistant'
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const assignmentFiles = pgTable("assignment_files", {
-  id: serial("id").primaryKey(),
-  conversationId: integer("conversation_id").notNull().references(() => assignmentConversations.id, { onDelete: "cascade" }),
-  messageId: integer("message_id").references(() => assignmentMessages.id, { onDelete: "cascade" }),
-  filename: varchar("filename", { length: 255 }).notNull(),
-  originalname: varchar("originalname", { length: 255 }).notNull(),
-  mimetype: varchar("mimetype", { length: 100 }).notNull(),
-  size: integer("size").notNull(),
-  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
-});
-
 export const insertNoteSchema = createInsertSchema(notes);
 export const insertMicroCourseSchema = createInsertSchema(microCourses);
 
@@ -225,22 +196,6 @@ export const insertSavedDiscoverySchema = createInsertSchema(savedDiscoveries).o
   createdAt: true,
 });
 
-export const insertAssignmentConversationSchema = createInsertSchema(assignmentConversations).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertAssignmentMessageSchema = createInsertSchema(assignmentMessages).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertAssignmentFileSchema = createInsertSchema(assignmentFiles).omit({
-  id: true,
-  uploadedAt: true,
-});
-
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -251,10 +206,6 @@ export type InsertDiscoveryLocation = z.infer<typeof insertDiscoveryLocationSche
 export type InsertFavoriteLocation = z.infer<typeof insertFavoriteLocationSchema>;
 export type InsertSavedDiscovery = z.infer<typeof insertSavedDiscoverySchema>;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
-export type InsertAssignmentConversation = z.infer<typeof insertAssignmentConversationSchema>;
-export type InsertAssignmentMessage = z.infer<typeof insertAssignmentMessageSchema>;
-export type InsertAssignmentFile = z.infer<typeof insertAssignmentFileSchema>;
-
 export type File = typeof files.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
@@ -262,6 +213,3 @@ export type DiscoveryLocation = typeof discoveryLocations.$inferSelect;
 export type FavoriteLocation = typeof favoriteLocations.$inferSelect;
 export type SavedDiscovery = typeof savedDiscoveries.$inferSelect;
 export type Note = typeof notes.$inferSelect;
-export type AssignmentConversation = typeof assignmentConversations.$inferSelect;
-export type AssignmentMessage = typeof assignmentMessages.$inferSelect;
-export type AssignmentFile = typeof assignmentFiles.$inferSelect;

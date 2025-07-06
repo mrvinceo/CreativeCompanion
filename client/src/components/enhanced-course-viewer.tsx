@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, Award, BookOpen, Target, Upload, MessageSquare } from 'lucide-react';
+import { CheckCircle, XCircle, Award, BookOpen, Target } from 'lucide-react';
 
 interface QuizQuestion {
   question: string;
@@ -52,7 +52,6 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   const [quizScores, setQuizScores] = useState<{ [partIndex: number]: number }>({});
   const [showQuizResults, setShowQuizResults] = useState<{ [partIndex: number]: boolean }>({});
   const [courseCompleted, setCourseCompleted] = useState(false);
-  const [showAssignmentSubmission, setShowAssignmentSubmission] = useState(false);
 
   const hasStructuredContent = course.parts && course.parts.length > 0;
   const totalParts = hasStructuredContent ? course.parts!.length : 0;
@@ -299,16 +298,6 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
                           </span>
                         </p>
                         {getScoreBadge(calculateTotalScore())}
-                        
-                        <div className="mt-4">
-                          <Button 
-                            onClick={() => setShowAssignmentSubmission(true)}
-                            className="bg-purple-600 hover:bg-purple-700"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Submit Assignment
-                          </Button>
-                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -355,21 +344,6 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
             Next Part
           </Button>
         </div>
-
-        {/* Assignment Submission Modal - Coming Soon */}
-        {showAssignmentSubmission && course.finalAssignment && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <h2 className="text-xl font-bold mb-4">Assignment Submission</h2>
-              <p className="text-gray-600 mb-4">
-                Assignment submission feature is being set up. You'll soon be able to upload your work for personalized feedback!
-              </p>
-              <Button onClick={() => setShowAssignmentSubmission(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
