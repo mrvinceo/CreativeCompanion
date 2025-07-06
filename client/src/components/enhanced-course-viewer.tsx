@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, XCircle, Award, BookOpen, Target, Upload, MessageSquare } from 'lucide-react';
-import { AssignmentSubmission } from '@/components/assignment-submission';
 
 interface QuizQuestion {
   question: string;
@@ -357,13 +356,19 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
           </Button>
         </div>
 
-        {/* Assignment Submission Modal */}
+        {/* Assignment Submission Modal - Coming Soon */}
         {showAssignmentSubmission && course.finalAssignment && (
-          <AssignmentSubmission
-            courseId={course.id}
-            assignment={course.finalAssignment}
-            onClose={() => setShowAssignmentSubmission(false)}
-          />
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <h2 className="text-xl font-bold mb-4">Assignment Submission</h2>
+              <p className="text-gray-600 mb-4">
+                Assignment submission feature is being set up. You'll soon be able to upload your work for personalized feedback!
+              </p>
+              <Button onClick={() => setShowAssignmentSubmission(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>

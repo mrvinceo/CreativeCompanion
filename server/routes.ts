@@ -2203,8 +2203,7 @@ If no valuable insights are found, return: {"items": []}`;
         for (const file of files) {
           // Upload to object storage
           const filename = `assignment-${conversation.id}-${Date.now()}-${file.originalname}`;
-          // TODO: Fix object storage upload
-          // await objectStorage.uploadFromFilename(BUCKET_NAME, filename, file.path);
+          await objectStorage.uploadFromFile(filename, file.path, BUCKET_NAME);
 
           // Create file record
           const assignmentFile = await storage.createAssignmentFile({
