@@ -110,8 +110,8 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
       // Create assignment-specific conversation with a system prompt based on the assignment
       const assignmentPrompt = `Provide the user with critical and constructive feedback on the work they have submitted in response to this assignment brief: "${course.finalAssignment.title} - ${course.finalAssignment.description}. ${course.finalAssignment.artworkPrompt}"`;
       
-      // Navigate to conversation with assignment context
-      setLocation(`/conversation/${sessionId}?assignment=true&courseId=${course.id}&prompt=${encodeURIComponent(assignmentPrompt)}`);
+      // Navigate to home page with assignment context
+      setLocation(`/?sessionId=${sessionId}&assignment=true&courseId=${course.id}&prompt=${encodeURIComponent(assignmentPrompt)}`);
       
     } catch (error) {
       console.error('Error creating assignment submission:', error);
