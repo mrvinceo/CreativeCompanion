@@ -2031,59 +2031,83 @@ If no valuable insights are found, return: {"items": []}`;
 
       const course = await storage.createMicroCourse(courseData);
 
-      // Build the prompt for n8n workflow
-      const notesText = selectedNotes.map(note => 
-        `${note.title} - ${note.content}`
-      ).join('; ');
-
-      const prompt = `Create a short course with this title: ${courseTitle} and which covers the following topics and/or themes: ${notesText}`;
-
-      // Send request to n8n workflow (fire and forget)
-      fetch('https://n8n.oca.ac.uk/webhook/generate-course', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt })
-      }).then(async (response) => {
+      // Generate course using Gemini AI (async)
+      import('./gemini').then(async ({ generateMicroCourse, generateCourseImage }) => {
         try {
-          if (response.ok) {
-            const data = await response.json(); // Parse JSON response
-            
-            // Extract htmlContent from the response
-            let htmlContent = '';
-            if (Array.isArray(data) && data.length > 0 && data[0].htmlContent) {
-              htmlContent = data[0].htmlContent;
-            } else if (data.htmlContent) {
-              htmlContent = data.htmlContent;
-            } else {
-              throw new Error('No htmlContent found in response');
-            }
-            
-            // Update course with generated HTML content
-            await storage.updateMicroCourse(course.id, {
-              content: htmlContent,
-              status: 'ready',
-              completedAt: new Date()
-            });
-            console.log(`Course ${course.id} generation completed successfully`);
-          } else {
-            console.error(`Course ${course.id} generation failed:`, response.status);
-            await storage.updateMicroCourse(course.id, {
-              status: 'failed'
-            });
-          }
+          console.log(`Starting course generation for course ${course.id}`);
+          
+          const generatedCourse = await generateMicroCourse(courseTitle, selectedNotes);
+          
+          // Generate images for each part
+          const partsWithImages = await Promise.all(
+            generatedCourse.parts.map(async (part) => {
+              try {
+                const imageUrl = await generateCourseImage(part.imagePrompt);
+                return {
+                  ...part,
+                  imageUrl
+                };
+              } catch (error) {
+                console.error(`Failed to generate image for part "${part.title}":`, error);
+                return part; // Return part without image
+              }
+            })
+          );
+
+          // Create HTML content from the structured data
+          const htmlContent = `
+            <div class="micro-course" style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; line-height: 1.6;">
+              <h1 style="color: #F5A623; text-align: center; border-bottom: 2px solid #F5A623; padding-bottom: 10px;">${courseTitle}</h1>
+              ${partsWithImages.map((part, index) => `
+                <div class="course-part" style="margin: 40px 0; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                  <h2 style="color: #E91E63; margin-top: 0;">Part ${index + 1}: ${part.title}</h2>
+                  ${part.imageUrl ? `<img src="${part.imageUrl}" alt="${part.title}" style="max-width: 100%; height: auto; margin: 20px 0; border-radius: 8px;" />` : ''}
+                  <div class="content" style="margin: 20px 0; text-align: justify;">
+                    ${part.content.split('\n').map(paragraph => `<p style="margin: 15px 0;">${paragraph}</p>`).join('')}
+                  </div>
+                  <div class="quiz" style="margin: 30px 0; padding: 20px; background: #fff; border-radius: 8px;">
+                    <h3 style="color: #2196F3; margin-top: 0;">Quiz</h3>
+                    ${part.quiz.map((q, qIndex) => `
+                      <div class="question" style="margin: 20px 0; padding: 15px; border-left: 4px solid #2196F3; background: #f0f8ff;">
+                        <p style="margin: 0 0 10px 0;"><strong>Question ${qIndex + 1}:</strong> ${q.question}</p>
+                        <ol style="margin: 10px 0; padding-left: 20px;">
+                          ${q.options.map((option, oIndex) => `
+                            <li style="margin: 5px 0; ${oIndex === q.correctAnswer ? 'color: #4CAF50; font-weight: bold;' : ''}">${option}</li>
+                          `).join('')}
+                        </ol>
+                        <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;"><em>Correct answer: ${q.options[q.correctAnswer]}</em></p>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `).join('')}
+              <div class="final-assignment" style="margin: 40px 0; padding: 30px; background: linear-gradient(135deg, #F5A623, #E91E63); color: white; border-radius: 12px;">
+                <h2 style="color: white; margin-top: 0;">Final Assignment: ${generatedCourse.finalAssignment.title}</h2>
+                <p style="margin: 20px 0; font-size: 16px;">${generatedCourse.finalAssignment.description}</p>
+                <div style="margin: 20px 0; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                  <h3 style="margin-top: 0;">Artwork Creation Task:</h3>
+                  <p style="margin: 10px 0; font-size: 16px; font-style: italic;">${generatedCourse.finalAssignment.artworkPrompt}</p>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Update course with generated content
+          await storage.updateMicroCourse(course.id, {
+            content: htmlContent,
+            status: 'ready',
+            completedAt: new Date(),
+            parts: partsWithImages,
+            finalAssignment: generatedCourse.finalAssignment
+          });
+          
+          console.log(`Course ${course.id} generation completed successfully`);
         } catch (error) {
           console.error(`Course ${course.id} generation error:`, error);
           await storage.updateMicroCourse(course.id, {
             status: 'failed'
           });
         }
-      }).catch(async (error) => {
-        console.error(`Course ${course.id} request failed:`, error);
-        await storage.updateMicroCourse(course.id, {
-          status: 'failed'
-        });
       });
 
       res.json({ 

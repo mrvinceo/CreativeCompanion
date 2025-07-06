@@ -73,6 +73,22 @@ export interface IStorage {
     content: string;
     status: 'generating' | 'ready' | 'failed';
     sourceNotes: Array<{ title: string; content: string }>;
+    parts?: Array<{
+      title: string;
+      content: string;
+      imagePrompt: string;
+      imageUrl?: string;
+      quiz: Array<{
+        question: string;
+        options: string[];
+        correctAnswer: number;
+      }>;
+    }>;
+    finalAssignment?: {
+      title: string;
+      description: string;
+      artworkPrompt: string;
+    };
   }): Promise<any>; // Replace any with the correct type
 
   getMicroCoursesByUser(userId: string): Promise<any[]>; // Replace any with the correct type
@@ -81,6 +97,22 @@ export interface IStorage {
     content?: string;
     status?: 'generating' | 'ready' | 'failed';
     completedAt?: Date;
+    parts?: Array<{
+      title: string;
+      content: string;
+      imagePrompt: string;
+      imageUrl?: string;
+      quiz: Array<{
+        question: string;
+        options: string[];
+        correctAnswer: number;
+      }>;
+    }>;
+    finalAssignment?: {
+      title: string;
+      description: string;
+      artworkPrompt: string;
+    };
   }): Promise<any>; // Replace any with the correct type
 
   deleteMicroCourse(id: number): Promise<void>;
@@ -425,6 +457,22 @@ export class DatabaseStorage implements IStorage {
     content: string;
     status: 'generating' | 'ready' | 'failed';
     sourceNotes: Array<{ title: string; content: string }>;
+    parts?: Array<{
+      title: string;
+      content: string;
+      imagePrompt: string;
+      imageUrl?: string;
+      quiz: Array<{
+        question: string;
+        options: string[];
+        correctAnswer: number;
+      }>;
+    }>;
+    finalAssignment?: {
+      title: string;
+      description: string;
+      artworkPrompt: string;
+    };
   }) {
     const [course] = await db.insert(microCourses).values({
       userId: data.userId,
@@ -432,6 +480,8 @@ export class DatabaseStorage implements IStorage {
       content: data.content,
       status: data.status,
       sourceNotes: data.sourceNotes,
+      parts: data.parts,
+      finalAssignment: data.finalAssignment,
       createdAt: new Date(),
       updatedAt: new Date()
     }).returning();
@@ -454,6 +504,22 @@ export class DatabaseStorage implements IStorage {
     content?: string;
     status?: 'generating' | 'ready' | 'failed';
     completedAt?: Date;
+    parts?: Array<{
+      title: string;
+      content: string;
+      imagePrompt: string;
+      imageUrl?: string;
+      quiz: Array<{
+        question: string;
+        options: string[];
+        correctAnswer: number;
+      }>;
+    }>;
+    finalAssignment?: {
+      title: string;
+      description: string;
+      artworkPrompt: string;
+    };
   }) {
     const [course] = await db.update(microCourses)
       .set({

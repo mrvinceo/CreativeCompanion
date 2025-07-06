@@ -5,12 +5,33 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BookOpen, Calendar, Clock, ExternalLink, Plus } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Clock, ExternalLink, Plus, Sparkles, Target } from "lucide-react";
 import { useLocation } from "wouter";
 import { RefynLogo } from "@/components/refyn-logo";
 import { MicroCourseGenerator } from "@/components/micro-course-generator";
+import { EnhancedCourseViewer } from "@/components/enhanced-course-viewer";
 import { MobileLayout } from "@/components/mobile-layout";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+}
+
+interface CoursePart {
+  title: string;
+  content: string;
+  imagePrompt: string;
+  imageUrl?: string;
+  quiz: QuizQuestion[];
+}
+
+interface FinalAssignment {
+  title: string;
+  description: string;
+  artworkPrompt: string;
+}
 
 interface MicroCourse {
   id: number;
@@ -18,6 +39,8 @@ interface MicroCourse {
   title: string;
   content: string;
   status: 'generating' | 'ready' | 'failed';
+  parts?: CoursePart[];
+  finalAssignment?: FinalAssignment;
   createdAt: string;
   completedAt?: string;
   sourceNotes: Array<{
@@ -114,6 +137,18 @@ export default function MicroCourses() {
                         <Badge variant="outline" className="text-xs">
                           {course.sourceNotes.length} notes
                         </Badge>
+                        {course.parts && course.parts.length > 0 && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            {course.parts.length} parts
+                          </Badge>
+                        )}
+                        {course.finalAssignment && (
+                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700">
+                            <Target className="w-3 h-3 mr-1" />
+                            Assignment
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     {course.status === 'ready' && (
@@ -163,24 +198,12 @@ export default function MicroCourses() {
         onClose={() => setIsGeneratorOpen(false)} 
       />
 
-      {/* Course Viewer Dialog */}
+      {/* Enhanced Course Viewer */}
       {selectedCourse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-card border rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-semibold">{selectedCourse.title}</h2>
-              <Button variant="ghost" onClick={() => setSelectedCourse(null)}>
-                ×
-              </Button>
-            </div>
-            <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-              <div 
-                className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: selectedCourse.content }}
-              />
-            </div>
-          </div>
-        </div>
+        <EnhancedCourseViewer 
+          course={selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+        />
       )}
     </div>
   );

@@ -123,6 +123,22 @@ export const microCourses = pgTable("micro_courses", {
   content: text("content").notNull(),
   status: varchar("status", { length: 50 }).notNull().default("generating"), // 'generating' | 'ready' | 'failed'
   sourceNotes: jsonb("source_notes").$type<Array<{ title: string; content: string }>>().notNull(),
+  parts: jsonb("parts").$type<Array<{
+    title: string;
+    content: string;
+    imagePrompt: string;
+    imageUrl?: string;
+    quiz: Array<{
+      question: string;
+      options: string[];
+      correctAnswer: number;
+    }>;
+  }>>(),
+  finalAssignment: jsonb("final_assignment").$type<{
+    title: string;
+    description: string;
+    artworkPrompt: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
