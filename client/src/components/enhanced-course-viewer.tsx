@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +56,20 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [, setLocation] = useLocation();
 
+  // Load saved quiz results from localStorage on component mount
+  useEffect(() => {
+    const savedResults = localStorage.getItem(`course-${course.id}-quiz-results`);
+    if (savedResults) {
+      try {
+        const parsed = JSON.parse(savedResults);
+        setQuizScores(parsed.scores || {});
+        setShowQuizResults(parsed.showResults || {});
+      } catch (error) {
+        console.error('Error loading saved quiz results:', error);
+      }
+    }
+  }, [course.id]);
+
   const hasStructuredContent = course.parts && course.parts.length > 0;
   const totalParts = hasStructuredContent ? course.parts!.length : 0;
 
@@ -81,8 +95,42 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
     });
 
     const score = Math.round((correct / part.quiz.length) * 100);
-    setQuizScores(prev => ({ ...prev, [partIndex]: score }));
-    setShowQuizResults(prev => ({ ...prev, [partIndex]: true }));
+    const newQuizScores = { ...quizScores, [partIndex]: score };
+    const newShowResults = { ...showQuizResults, [partIndex]: true };
+    
+    setQuizScores(newQuizScores);
+    setShowQuizResults(newShowResults);
+    
+    // Save to localStorage
+    localStorage.setItem(`course-${course.id}-quiz-results`, JSON.stringify({
+      scores: newQuizScores,
+      showResults: newShowResults
+    }));
+  };
+
+  const retakeQuiz = (partIndex: number) => {
+    // Clear answers for this part
+    setQuizAnswers(prev => {
+      const newAnswers = { ...prev };
+      delete newAnswers[partIndex];
+      return newAnswers;
+    });
+    
+    // Hide results for this part
+    const newShowResults = { ...showQuizResults };
+    delete newShowResults[partIndex];
+    setShowQuizResults(newShowResults);
+    
+    // Remove score for this part
+    const newQuizScores = { ...quizScores };
+    delete newQuizScores[partIndex];
+    setQuizScores(newQuizScores);
+    
+    // Update localStorage
+    localStorage.setItem(`course-${course.id}-quiz-results`, JSON.stringify({
+      scores: newQuizScores,
+      showResults: newShowResults
+    }));
   };
 
   const calculateTotalScore = () => {
@@ -95,9 +143,19 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
     return Math.round(totalScore / completedQuizzes);
   };
 
-  const allQuizzesCompleted = () => {
+  const allQuizzesPassed = () => {
     if (!hasStructuredContent) return false;
-    return course.parts!.every((_, index) => showQuizResults[index]);
+    return course.parts!.every((_, index) => {
+      const hasResult = showQuizResults[index];
+      const score = quizScores[index];
+      return hasResult && score >= 50; // 50% pass rate
+    });
+  };
+
+  const getQuizStatus = (partIndex: number) => {
+    if (!showQuizResults[partIndex]) return 'not-taken';
+    const score = quizScores[partIndex];
+    return score >= 50 ? 'passed' : 'failed';
   };
 
   const handleAssignmentSubmission = async () => {
@@ -270,13 +328,37 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
 
                     {/* Quiz Results */}
                     {showQuizResults[currentPart] ? (
-                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-center p-4 bg-gray-50 rounded-lg space-y-3">
                         <div className="mb-2">
                           <span className={`text-2xl font-bold ${getScoreColor(quizScores[currentPart])}`}>
                             {quizScores[currentPart]}%
                           </span>
                         </div>
-                        {getScoreBadge(quizScores[currentPart])}
+                        <div className="flex items-center justify-center gap-2">
+                          {getScoreBadge(quizScores[currentPart])}
+                          {quizScores[currentPart] >= 50 ? (
+                            <Badge variant="default" className="bg-green-100 text-green-700">
+                              PASSED
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="bg-red-100 text-red-700">
+                              FAILED
+                            </Badge>
+                          )}
+                        </div>
+                        {quizScores[currentPart] < 50 && (
+                          <p className="text-sm text-gray-600">
+                            You need 50% or higher to pass this quiz.
+                          </p>
+                        )}
+                        <Button 
+                          onClick={() => retakeQuiz(currentPart)}
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                        >
+                          Retake Quiz
+                        </Button>
                       </div>
                     ) : (
                       <div className="text-center">
@@ -295,8 +377,8 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
                 </CardContent>
               </Card>
 
-              {/* Final Assignment (show on last part if all quizzes completed) */}
-              {currentPart === totalParts - 1 && allQuizzesCompleted() && course.finalAssignment && (
+              {/* Final Assignment (show on last part if all quizzes passed) */}
+              {currentPart === totalParts - 1 && course.finalAssignment && (
                 <Card className="border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -322,19 +404,51 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
                       </div>
                       
                       {/* Assignment Submission */}
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-                        <h4 className="font-semibold mb-3 text-blue-800">Submit Your Assignment</h4>
-                        <p className="text-gray-700 mb-4">
-                          Upload your artwork and get personalized feedback from our AI tutor based on the assignment brief.
-                        </p>
-                        <Button 
-                          onClick={() => handleAssignmentSubmission()}
-                          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Submit Assignment for Feedback
-                        </Button>
-                      </div>
+                      {allQuizzesPassed() ? (
+                        <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold mb-3 text-blue-800">Submit Your Assignment</h4>
+                          <p className="text-gray-700 mb-4">
+                            Upload your artwork and get personalized feedback from our AI tutor based on the assignment brief.
+                          </p>
+                          <Button 
+                            onClick={() => handleAssignmentSubmission()}
+                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Submit Assignment for Feedback
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-200">
+                          <h4 className="font-semibold mb-3 text-orange-800">Assignment Locked</h4>
+                          <p className="text-gray-700 mb-4">
+                            You need to pass all quizzes with 50% or higher to unlock the assignment submission.
+                          </p>
+                          <div className="text-sm text-gray-600">
+                            <p className="mb-2">Quiz Progress:</p>
+                            <ul className="space-y-1">
+                              {course.parts!.map((part, index) => (
+                                <li key={index} className="flex items-center gap-2">
+                                  <span className="font-medium">Part {index + 1}:</span>
+                                  {getQuizStatus(index) === 'passed' ? (
+                                    <Badge variant="default" className="bg-green-100 text-green-700 text-xs">
+                                      PASSED
+                                    </Badge>
+                                  ) : getQuizStatus(index) === 'failed' ? (
+                                    <Badge variant="destructive" className="bg-red-100 text-red-700 text-xs">
+                                      FAILED
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="bg-gray-100 text-gray-700 text-xs">
+                                      NOT TAKEN
+                                    </Badge>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -361,9 +475,11 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
                 className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
                   index === currentPart
                     ? 'bg-blue-600 text-white'
-                    : showQuizResults[index]
+                    : getQuizStatus(index) === 'passed'
                       ? 'bg-green-100 text-green-700 border border-green-300'
-                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      : getQuizStatus(index) === 'failed'
+                        ? 'bg-red-100 text-red-700 border border-red-300'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                 }`}
               >
                 {index + 1}
