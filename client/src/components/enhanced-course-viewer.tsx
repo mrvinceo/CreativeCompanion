@@ -127,8 +127,8 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 md:p-4 z-[60]">
+      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[95vh] md:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b flex items-center justify-between bg-gradient-to-r from-yellow-50 to-pink-50">
           <div>
@@ -307,17 +307,18 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
           )}
         </div>
 
-        {/* Navigation Footer */}
-        <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
+        {/* Navigation Footer - Added padding for mobile navigation */}
+        <div className="p-4 pb-20 md:pb-4 border-t bg-gray-50 flex justify-between items-center">
           <Button 
             variant="outline"
             onClick={() => setCurrentPart(prev => Math.max(0, prev - 1))}
             disabled={currentPart === 0}
+            className="flex-shrink-0"
           >
             Previous Part
           </Button>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 mx-4">
             {Array.from({ length: totalParts }, (_, index) => (
               <button
                 key={index}
@@ -338,7 +339,7 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
           <Button 
             onClick={() => setCurrentPart(prev => Math.min(totalParts - 1, prev + 1))}
             disabled={currentPart === totalParts - 1}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
           >
             Next Part
           </Button>
