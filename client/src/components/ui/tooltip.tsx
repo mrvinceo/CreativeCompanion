@@ -5,7 +5,10 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
 
-const TooltipProvider = TooltipPrimitive.Provider
+// Simple wrapper to avoid hooks issues
+const TooltipProvider = ({ children, ...props }: any) => {
+  return <div>{children}</div>;
+};
 
 const Tooltip = TooltipPrimitive.Root
 
