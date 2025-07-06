@@ -436,10 +436,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/analyze", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
-      const { sessionId, contextPrompt, mediaType } = req.body;
+      const { sessionId, contextPrompt, mediaType, assignmentPrompt, isAssignmentMode } = req.body;
 
-      if (!sessionId || !contextPrompt || !mediaType) {
-        return res.status(400).json({ message: "Session ID, context prompt, and media type are required" });
+      if (!sessionId || !contextPrompt) {
+        return res.status(400).json({ message: "Session ID and context prompt are required" });
+      }
+
+      // For assignment mode, we don't require mediaType
+      if (!isAssignmentMode && !mediaType) {
+        return res.status(400).json({ message: "Media type is required for non-assignment conversations" });
       }
 
       // Check usage limits
@@ -478,11 +483,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Prepare content for Gemini
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
       
-      const systemPrompt = MEDIA_SYSTEM_PROMPTS[mediaType as keyof typeof MEDIA_SYSTEM_PROMPTS] || MEDIA_SYSTEM_PROMPTS.photography;
+      // Determine system prompt based on mode
+      let systemPrompt: string;
+      let analysisText: string;
+      
+      if (isAssignmentMode && assignmentPrompt) {
+        systemPrompt = assignmentPrompt;
+        analysisText = `${systemPrompt}\n\nUser Context: ${contextPrompt}\n\nPlease provide detailed feedback on the submitted work based on the assignment brief.`;
+      } else {
+        systemPrompt = MEDIA_SYSTEM_PROMPTS[mediaType as keyof typeof MEDIA_SYSTEM_PROMPTS] || MEDIA_SYSTEM_PROMPTS.photography;
+        analysisText = `${systemPrompt}\n\nUser Context: ${contextPrompt}\n\nPlease analyze the uploaded files and provide detailed creative feedback based on your expertise in ${mediaType}.`;
+      }
       
       const parts: any[] = [
         {
-          text: `${systemPrompt}\n\nUser Context: ${contextPrompt}\n\nPlease analyze the uploaded files and provide detailed creative feedback based on your expertise in ${mediaType}.`
+          text: analysisText
         }
       ];
 

@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, Award, BookOpen, Target } from 'lucide-react';
+import { CheckCircle, XCircle, Award, BookOpen, Target, Upload } from 'lucide-react';
+import { useLocation } from 'wouter';
+import { nanoid } from 'nanoid';
 
 interface QuizQuestion {
   question: string;
@@ -52,6 +54,7 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   const [quizScores, setQuizScores] = useState<{ [partIndex: number]: number }>({});
   const [showQuizResults, setShowQuizResults] = useState<{ [partIndex: number]: boolean }>({});
   const [courseCompleted, setCourseCompleted] = useState(false);
+  const [, setLocation] = useLocation();
 
   const hasStructuredContent = course.parts && course.parts.length > 0;
   const totalParts = hasStructuredContent ? course.parts!.length : 0;
@@ -95,6 +98,24 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   const allQuizzesCompleted = () => {
     if (!hasStructuredContent) return false;
     return course.parts!.every((_, index) => showQuizResults[index]);
+  };
+
+  const handleAssignmentSubmission = async () => {
+    if (!course.finalAssignment) return;
+    
+    try {
+      // Create a new session for the assignment submission
+      const sessionId = nanoid();
+      
+      // Create assignment-specific conversation with a system prompt based on the assignment
+      const assignmentPrompt = `Provide the user with critical and constructive feedback on the work they have submitted in response to this assignment brief: "${course.finalAssignment.title} - ${course.finalAssignment.description}. ${course.finalAssignment.artworkPrompt}"`;
+      
+      // Navigate to conversation with assignment context
+      setLocation(`/conversation/${sessionId}?assignment=true&courseId=${course.id}&prompt=${encodeURIComponent(assignmentPrompt)}`);
+      
+    } catch (error) {
+      console.error('Error creating assignment submission:', error);
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -298,6 +319,21 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
                           </span>
                         </p>
                         {getScoreBadge(calculateTotalScore())}
+                      </div>
+                      
+                      {/* Assignment Submission */}
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                        <h4 className="font-semibold mb-3 text-blue-800">Submit Your Assignment</h4>
+                        <p className="text-gray-700 mb-4">
+                          Upload your artwork and get personalized feedback from our AI tutor based on the assignment brief.
+                        </p>
+                        <Button 
+                          onClick={() => handleAssignmentSubmission()}
+                          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Submit Assignment for Feedback
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

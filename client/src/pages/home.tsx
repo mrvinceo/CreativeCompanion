@@ -39,17 +39,36 @@ export default function Home() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
+  const [isAssignmentMode, setIsAssignmentMode] = useState(false);
+  const [assignmentPrompt, setAssignmentPrompt] = useState('');
+  const [courseId, setCourseId] = useState<string>('');
   const { toast } = useToast();
 
   // Handle session parameter changes - this effect should run when location changes
   useEffect(() => {
-    const currentSessionParam = new URLSearchParams(window.location.search).get('session');
-    console.log('Home page - detected session param:', currentSessionParam, 'current sessionId:', sessionId);
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSessionParam = urlParams.get('session');
+    const isAssignment = urlParams.get('assignment') === 'true';
+    const customPrompt = urlParams.get('prompt');
+    const courseIdParam = urlParams.get('courseId');
+    
+    console.log('Home page - detected params:', { currentSessionParam, isAssignment, customPrompt, courseIdParam });
 
     if (currentSessionParam && currentSessionParam !== sessionId) {
       console.log('Home page - updating sessionId to:', currentSessionParam);
       setSessionId(currentSessionParam);
-      // Clear URL parameter after setting session
+    }
+
+    // Handle assignment mode
+    if (isAssignment) {
+      setIsAssignmentMode(true);
+      if (customPrompt) {
+        setAssignmentPrompt(decodeURIComponent(customPrompt));
+      }
+      if (courseIdParam) {
+        setCourseId(courseIdParam);
+      }
+      // Clear URL parameters after setting state
       if (window.history.replaceState) {
         window.history.replaceState({}, '', window.location.pathname);
       }
@@ -140,7 +159,7 @@ export default function Home() {
       return;
     }
 
-    if (!mediaType) {
+    if (!isAssignmentMode && !mediaType) {
       toast({
         title: "Media type required",
         description: "Please select a media type for specialized feedback",
@@ -161,11 +180,19 @@ export default function Home() {
     setAnalyzing(true);
 
     try {
-      const response = await apiRequest('POST', '/api/analyze', {
+      const requestBody: any = {
         sessionId,
         contextPrompt,
-        mediaType,
-      });
+      };
+
+      if (isAssignmentMode) {
+        requestBody.isAssignmentMode = true;
+        requestBody.assignmentPrompt = assignmentPrompt;
+      } else {
+        requestBody.mediaType = mediaType;
+      }
+
+      const response = await apiRequest('POST', '/api/analyze', requestBody);
 
       const data = await response.json();
       setConversation(data.conversation);
@@ -337,35 +364,48 @@ export default function Home() {
 
           {files.length > 0 && <FilePreview files={files} />}
 
-          {/* Media Type & Context Section */}
+          {/* Media Type & Context Section or Assignment Details */}
           <Card className="p-6 bg-gradient-to-br from-purple-500 to-violet-400 text-white border-0 shadow-lg">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
               <Lightbulb className="w-5 h-5 text-white mr-2" />
-              Creative Medium & Context
+              {isAssignmentMode ? 'Assignment Submission' : 'Creative Medium & Context'}
             </h2>
 
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="media-type" className="text-sm font-medium text-white">
-                  Select Your Creative Medium
-                </Label>
-                <Select 
-                  value={mediaType} 
-                  onValueChange={(value: MediaType) => setMediaType(value)}
-                  disabled={analyzing || !!conversation}
-                >
-                  <SelectTrigger className="mt-1 bg-white text-slate-900">
-                    <SelectValue placeholder="Choose the type of creative work..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(MEDIA_TYPES).map(([key, { label }]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {isAssignmentMode ? (
+                <div>
+                  <Label className="text-sm font-medium text-white">
+                    Assignment Brief
+                  </Label>
+                  <div className="mt-1 p-3 bg-white/10 rounded-md">
+                    <p className="text-white text-sm leading-relaxed">
+                      {assignmentPrompt}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="media-type" className="text-sm font-medium text-white">
+                    Select Your Creative Medium
+                  </Label>
+                  <Select 
+                    value={mediaType} 
+                    onValueChange={(value: MediaType) => setMediaType(value)}
+                    disabled={analyzing || !!conversation}
+                  >
+                    <SelectTrigger className="mt-1 bg-white text-slate-900">
+                      <SelectValue placeholder="Choose the type of creative work..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(MEDIA_TYPES).map(([key, { label }]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="context-prompt" className="text-sm font-medium text-white">
@@ -398,10 +438,10 @@ Examples:
               {!conversation && (
                 <Button 
                   onClick={submitForAnalysis}
-                  disabled={analyzing || !contextPrompt.trim() || !mediaType || files.length === 0}
+                  disabled={analyzing || !contextPrompt.trim() || (!isAssignmentMode && !mediaType) || files.length === 0}
                   className="bg-gradient-to-r from-primary to-secondary"
                 >
-                  {analyzing ? 'Analyzing...' : 'Get AI Feedback'}
+                  {analyzing ? 'Analyzing...' : isAssignmentMode ? 'Submit Assignment' : 'Get AI Feedback'}
                 </Button>
               )}
             </div>
