@@ -6,7 +6,6 @@ export interface CoursePart {
   title: string;
   content: string;
   imagePrompt: string;
-  imageUrl?: string;
   quiz: {
     question: string;
     options: string[];
@@ -105,28 +104,20 @@ Ensure all content is educational, practical, and encourages creative growth. Th
 }
 
 export async function generateCourseImage(imagePrompt: string): Promise<string> {
-  try {
-    // Use Google's Imagen 3 through Gemini 2.0 Flash with image generation
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    
-    const result = await model.generateContent({
-      contents: [{ 
-        role: "user", 
-        parts: [{ text: `Create a high-quality educational illustration: ${imagePrompt}. Make it visually appealing, professional, and suitable for learning materials.` }] 
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 2048,
-      },
-    });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
-    const response = await result.response;
-    console.log('Gemini image generation response received');
+  try {
+    const result = await model.generateContent([
+      {
+        text: `Create an educational illustration for a micro-course. The image should be: ${imagePrompt}. Make it visually appealing, professional, and suitable for learning materials.`
+      }
+    ]);
     
-    // Note: Google's Imagen 3 integration through Gemini API is still in preview
-    // For now, we'll use enhanced placeholder SVGs with more detailed visuals
+    const response = await result.response;
+    const text = response.text();
+    
+    // For now, return a placeholder since image generation with Gemini requires specific setup
+    // In a real implementation, this would generate and return actual image data
     return `data:image/svg+xml;base64,${Buffer.from(createPlaceholderSVG(imagePrompt)).toString('base64')}`;
   } catch (error) {
     console.error("Image generation error:", error);
@@ -135,53 +126,17 @@ export async function generateCourseImage(imagePrompt: string): Promise<string> 
 }
 
 function createPlaceholderSVG(prompt: string): string {
-  const themes = [
-    { bg: '#F5A623', accent: '#FFF3E0', icon: '🎨' },
-    { bg: '#E91E63', accent: '#FCE4EC', icon: '📚' },
-    { bg: '#2196F3', accent: '#E3F2FD', icon: '🔬' },
-    { bg: '#4CAF50', accent: '#E8F5E8', icon: '🌱' },
-    { bg: '#FF9800', accent: '#FFF3E0', icon: '💡' }
-  ];
-  const theme = themes[Math.floor(Math.random() * themes.length)];
+  const colors = ['#F5A623', '#E91E63', '#2196F3', '#4CAF50', '#FF9800'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
   
   return `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:${theme.accent};stop-opacity:1" />
-        <stop offset="100%" style="stop-color:${theme.bg};stop-opacity:0.1" />
-      </linearGradient>
-      <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:white;stop-opacity:0.9" />
-        <stop offset="100%" style="stop-color:${theme.bg};stop-opacity:0.1" />
-      </linearGradient>
-    </defs>
-    
-    <!-- Background -->
-    <rect width="400" height="300" fill="url(#bgGradient)"/>
-    
-    <!-- Main content card -->
-    <rect x="40" y="40" width="320" height="220" fill="url(#cardGradient)" rx="15" stroke="${theme.bg}" stroke-width="2"/>
-    
-    <!-- Icon circle -->
-    <circle cx="200" cy="110" r="25" fill="${theme.bg}" opacity="0.8"/>
-    <text x="200" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">
-      ${theme.icon}
-    </text>
-    
-    <!-- Title -->
-    <text x="200" y="160" text-anchor="middle" fill="${theme.bg}" font-family="Arial, sans-serif" font-size="18" font-weight="bold">
+    <rect width="400" height="300" fill="${color}" opacity="0.1"/>
+    <rect x="50" y="50" width="300" height="200" fill="${color}" opacity="0.3" rx="10"/>
+    <text x="200" y="140" text-anchor="middle" fill="${color}" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
       Course Illustration
     </text>
-    
-    <!-- Description -->
-    <text x="200" y="185" text-anchor="middle" fill="${theme.bg}" font-family="Arial, sans-serif" font-size="12" opacity="0.7">
-      ${prompt.substring(0, 45)}${prompt.length > 45 ? '...' : ''}
+    <text x="200" y="170" text-anchor="middle" fill="${color}" font-family="Arial, sans-serif" font-size="12" opacity="0.8">
+      ${prompt.substring(0, 40)}...
     </text>
-    
-    <!-- Decorative elements -->
-    <circle cx="80" cy="80" r="3" fill="${theme.bg}" opacity="0.3"/>
-    <circle cx="320" cy="80" r="3" fill="${theme.bg}" opacity="0.3"/>
-    <circle cx="80" cy="220" r="3" fill="${theme.bg}" opacity="0.3"/>
-    <circle cx="320" cy="220" r="3" fill="${theme.bg}" opacity="0.3"/>
   </svg>`;
 }
