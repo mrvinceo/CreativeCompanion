@@ -307,8 +307,8 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
           )}
         </div>
 
-        {/* Navigation Footer */}
-        <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
+        {/* Navigation Footer - with mobile padding to avoid navigation bar */}
+        <div className="p-4 pb-20 md:pb-4 border-t bg-gray-50 flex justify-between items-center">
           <Button 
             variant="outline"
             onClick={() => setCurrentPart(prev => Math.max(0, prev - 1))}
