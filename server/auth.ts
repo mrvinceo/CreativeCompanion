@@ -211,14 +211,24 @@ export function setupAuth(app: Express) {
       console.log("OAuth callback - session ID:", req.sessionID);
       console.log("OAuth callback - isAuthenticated:", req.isAuthenticated());
       
-      // Force save session
+      if (!req.isAuthenticated() || !req.user) {
+        console.log("OAuth callback failed - not authenticated");
+        return res.redirect("/auth?error=authentication_failed");
+      }
+      
+      // Force save session and wait for it to complete
       req.session.save((err) => {
         if (err) {
           console.log("Session save error:", err);
-        } else {
-          console.log("Session saved successfully");
+          return res.redirect("/auth?error=session_save_failed");
         }
-        res.redirect("/");
+        
+        console.log("Session saved successfully");
+        
+        // Add a small delay to ensure session is properly saved
+        setTimeout(() => {
+          res.redirect("/?auth=success");
+        }, 100);
       });
     }
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -22,6 +22,37 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const { toast } = useToast();
   const { user, isLoading } = useAuth();
+
+  // Check for OAuth errors in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    
+    if (error) {
+      let errorMessage = "Authentication failed";
+      
+      switch (error) {
+        case 'google':
+          errorMessage = "Google authentication failed. Please try again.";
+          break;
+        case 'authentication_failed':
+          errorMessage = "Authentication failed. Please try again.";
+          break;
+        case 'session_save_failed':
+          errorMessage = "Session save failed. Please try again.";
+          break;
+      }
+      
+      toast({
+        title: "Authentication Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
+      // Clean up the URL
+      window.history.replaceState({}, document.title, '/auth');
+    }
+  }, [toast]);
 
   // Redirect if already authenticated
   if (!isLoading && user) {
@@ -100,6 +131,8 @@ export default function AuthPage() {
   };
 
   const handleGoogleAuth = () => {
+    // Store auth attempt in localStorage for multi-tab support
+    localStorage.setItem('auth_change', Date.now().toString());
     window.location.href = "/api/auth/google";
   };
 
