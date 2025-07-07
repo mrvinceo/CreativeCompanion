@@ -1,16 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { useEffect } from "react";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, getQueryFn } from "@/lib/queryClient";
 
 export function useAuth() {
   const { data: user, isLoading, refetch, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],
+    queryFn: getQueryFn({ on401: "returnNull" }), // Return null instead of throwing on 401
     retry: false,
-    refetchOnWindowFocus: false, // Disable aggressive refetching
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
-    refetchInterval: false, // Disable automatic refetching
-    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+    refetchInterval: false,
+    staleTime: 30 * 1000,
   });
 
   // Listen for auth success from OAuth callback
