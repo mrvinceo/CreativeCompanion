@@ -7,6 +7,7 @@ import { User, LogOut, ListRestart, MapPin, CirclePlus, BookOpen, GraduationCap 
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { queryClient } from '@/lib/queryClient';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -91,7 +92,28 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => window.location.href = '/api/logout'}
+              onClick={async () => {
+                try {
+                  // Clear query cache first
+                  queryClient.clear();
+                  
+                  // Call logout API
+                  const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                  });
+                  
+                  if (response.ok) {
+                    // Clear any remaining cache and redirect
+                    queryClient.removeQueries();
+                    window.location.href = '/';
+                  }
+                } catch (error) {
+                  console.error('Logout error:', error);
+                  // Force redirect even if logout fails
+                  window.location.href = '/';
+                }
+              }}
               className="p-2 text-white hover:bg-gray-800"
             >
               <LogOut className="w-5 h-5" />

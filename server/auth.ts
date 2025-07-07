@@ -234,9 +234,24 @@ export function setupAuth(app: Express) {
   );
 
   app.post("/api/logout", (req, res, next) => {
+    console.log("Logout request received");
     req.logout((err) => {
-      if (err) return next(err);
-      res.json({ success: true });
+      if (err) {
+        console.log("Logout error:", err);
+        return next(err);
+      }
+      
+      // Destroy the session completely
+      req.session.destroy((destroyErr) => {
+        if (destroyErr) {
+          console.log("Session destroy error:", destroyErr);
+          return next(destroyErr);
+        }
+        
+        console.log("Session destroyed successfully");
+        res.clearCookie('connect.sid'); // Clear session cookie
+        res.json({ success: true });
+      });
     });
   });
 

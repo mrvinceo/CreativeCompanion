@@ -4,11 +4,13 @@ import { useEffect } from "react";
 import { queryClient } from "@/lib/queryClient";
 
 export function useAuth() {
-  const { data: user, isLoading, refetch } = useQuery<User>({
+  const { data: user, isLoading, refetch, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Disable aggressive refetching
     refetchOnMount: true,
+    refetchInterval: false, // Disable automatic refetching
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
   });
 
   // Listen for auth success from OAuth callback
@@ -46,5 +48,6 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!user,
     refetch,
+    error,
   };
 }
