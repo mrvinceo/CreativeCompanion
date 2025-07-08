@@ -11,7 +11,8 @@ export function useAuth() {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchInterval: false,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes - keep user authenticated longer
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
   });
 
   // Listen for auth success from OAuth callback

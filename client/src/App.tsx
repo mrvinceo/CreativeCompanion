@@ -30,9 +30,6 @@ function Router() {
     return () => clearTimeout(timer);
   }, []);
 
-  // If there's an error or we've timed out, treat as unauthenticated
-  const showAsUnauthenticated = !isAuthenticated || error || hasTimedOut;
-  
   // Only show loading if we're actually loading and haven't timed out
   if (isLoading && !hasTimedOut && !error) {
     return (
@@ -48,13 +45,13 @@ function Router() {
   // Always render something - never return undefined
   return (
     <Switch>
-      {showAsUnauthenticated ? (
+      {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
-          <Route component={Landing} />
+          <Route path="*" component={Landing} />
         </>
       ) : (
         <>
@@ -63,7 +60,7 @@ function Router() {
           <Route path="/micro-courses" component={MicroCourses} />
           <Route path="/cultural-discovery" component={CulturalDiscovery} />
           <Route path="/success" component={Success} />
-          <Route component={Home} />
+          <Route path="*" component={Home} />
         </>
       )}
     </Switch>
