@@ -47,20 +47,18 @@ function Router() {
     <Switch>
       {!isAuthenticated ? (
         <>
-          <Route path="/" component={Landing} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
-          <Route path="*" component={Landing} />
+          <Route path="/" component={Landing} />
         </>
       ) : (
         <>
-          <Route path="/" component={Home} />
           <Route path="/notes" component={Notes} />
           <Route path="/micro-courses" component={MicroCourses} />
           <Route path="/cultural-discovery" component={CulturalDiscovery} />
           <Route path="/success" component={Success} />
-          <Route path="*" component={Home} />
+          <Route path="/" component={Home} />
         </>
       )}
     </Switch>
