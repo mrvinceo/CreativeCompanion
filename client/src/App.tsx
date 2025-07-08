@@ -45,22 +45,30 @@ function Router() {
   // Always render something - never return undefined
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/login" component={LoginPage} />
-          <Route path="/register" component={RegisterPage} />
-          <Route path="/" component={Landing} />
-        </>
-      ) : (
-        <>
-          <Route path="/notes" component={Notes} />
-          <Route path="/micro-courses" component={MicroCourses} />
-          <Route path="/cultural-discovery" component={CulturalDiscovery} />
-          <Route path="/success" component={Success} />
-          <Route path="/" component={Home} />
-        </>
-      )}
+      <Route path="/auth">
+        {!isAuthenticated ? <AuthPage /> : <Home />}
+      </Route>
+      <Route path="/login">
+        {!isAuthenticated ? <LoginPage /> : <Home />}
+      </Route>
+      <Route path="/register">
+        {!isAuthenticated ? <RegisterPage /> : <Home />}
+      </Route>
+      <Route path="/notes">
+        {isAuthenticated ? <Notes /> : <Landing />}
+      </Route>
+      <Route path="/micro-courses">
+        {isAuthenticated ? <MicroCourses /> : <Landing />}
+      </Route>
+      <Route path="/cultural-discovery">
+        {isAuthenticated ? <CulturalDiscovery /> : <Landing />}
+      </Route>
+      <Route path="/success">
+        {isAuthenticated ? <Success /> : <Landing />}
+      </Route>
+      <Route path="/">
+        {isAuthenticated ? <Home /> : <Landing />}
+      </Route>
     </Switch>
   );
 }
