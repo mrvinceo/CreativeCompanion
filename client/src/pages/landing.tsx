@@ -125,7 +125,7 @@ export default function Landing() {
       
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 text-center py-4">
-        <p>© Paul Vincent 2025</p>
+        <p>© Ryzomi 2025</p>
       </footer>
     </div>
   );
