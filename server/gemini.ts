@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, Modality } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -104,23 +104,52 @@ Ensure all content is educational, practical, and encourages creative growth. Th
 }
 
 export async function generateCourseImage(imagePrompt: string): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-
+  console.log(`[IMAGE GENERATION] Starting generation for prompt: ${imagePrompt}`);
+  
   try {
-    const result = await model.generateContent([
-      {
-        text: `Create an educational illustration for a micro-course. The image should be: ${imagePrompt}. Make it visually appealing, professional, and suitable for learning materials.`
+    // Use Google's Imagen 3 API through the Gemini API
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash-preview-image-generation"
+    });
+
+    const prompt = `Create an educational illustration for a micro-course. The image should be: ${imagePrompt}. Make it visually appealing, professional, and suitable for learning materials. Style: Clean, modern, educational, with good contrast and clear visual elements.`;
+
+    console.log(`[IMAGE GENERATION] Sending request to Gemini API with model: gemini-2.0-flash-preview-image-generation`);
+
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseModalities: [Modality.TEXT, Modality.IMAGE],
       }
-    ]);
-    
+    });
+
     const response = await result.response;
-    const text = response.text();
+    const candidates = response.candidates;
     
-    // For now, return a placeholder since image generation with Gemini requires specific setup
-    // In a real implementation, this would generate and return actual image data
+    console.log(`[IMAGE GENERATION] Response received. Candidates count: ${candidates?.length || 0}`);
+    
+    if (candidates && candidates.length > 0) {
+      const content = candidates[0].content;
+      if (content && content.parts) {
+        console.log(`[IMAGE GENERATION] Content parts count: ${content.parts.length}`);
+        
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            // Return the generated image as base64 data URL
+            const mimeType = part.inlineData.mimeType || "image/png";
+            console.log(`[IMAGE GENERATION] SUCCESS: Generated image with mimeType: ${mimeType}`);
+            return `data:${mimeType};base64,${part.inlineData.data}`;
+          }
+        }
+      }
+    }
+    
+    // If no image was generated, fall back to SVG placeholder
+    console.log("[IMAGE GENERATION] No image generated, using SVG placeholder");
     return `data:image/svg+xml;base64,${Buffer.from(createPlaceholderSVG(imagePrompt)).toString('base64')}`;
   } catch (error) {
-    console.error("Image generation error:", error);
+    console.error("[IMAGE GENERATION] Error:", error);
+    // Fall back to SVG placeholder on error
     return `data:image/svg+xml;base64,${Buffer.from(createPlaceholderSVG(imagePrompt)).toString('base64')}`;
   }
 }
@@ -130,13 +159,25 @@ function createPlaceholderSVG(prompt: string): string {
   const color = colors[Math.floor(Math.random() * colors.length)];
   
   return `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-    <rect width="400" height="300" fill="${color}" opacity="0.1"/>
-    <rect x="50" y="50" width="300" height="200" fill="${color}" opacity="0.3" rx="10"/>
-    <text x="200" y="140" text-anchor="middle" fill="${color}" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
-      Course Illustration
+    <defs>
+      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${color};stop-opacity:0.3" />
+        <stop offset="100%" style="stop-color:${color};stop-opacity:0.1" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="300" fill="url(#grad1)"/>
+    <rect x="30" y="30" width="340" height="240" fill="white" opacity="0.9" rx="15"/>
+    <rect x="40" y="40" width="320" height="160" fill="${color}" opacity="0.1" rx="8"/>
+    <circle cx="200" cy="100" r="30" fill="${color}" opacity="0.3"/>
+    <rect x="150" y="85" width="100" height="30" fill="${color}" opacity="0.5" rx="15"/>
+    <text x="200" y="160" text-anchor="middle" fill="${color}" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600">
+      AI-Generated Image
     </text>
-    <text x="200" y="170" text-anchor="middle" fill="${color}" font-family="Arial, sans-serif" font-size="12" opacity="0.8">
-      ${prompt.substring(0, 40)}...
+    <text x="200" y="180" text-anchor="middle" fill="${color}" font-family="system-ui, -apple-system, sans-serif" font-size="11" opacity="0.8">
+      ${prompt.substring(0, 45)}${prompt.length > 45 ? '...' : ''}
+    </text>
+    <text x="200" y="250" text-anchor="middle" fill="${color}" font-family="system-ui, -apple-system, sans-serif" font-size="10" opacity="0.6">
+      Educational Content Illustration
     </text>
   </svg>`;
 }
