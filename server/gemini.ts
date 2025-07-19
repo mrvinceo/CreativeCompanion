@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, Modality } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -119,7 +119,7 @@ export async function generateCourseImage(imagePrompt: string): Promise<string> 
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
-        responseModalities: [Modality.TEXT, Modality.IMAGE],
+        responseModalities: ["TEXT", "IMAGE"],
       }
     });
 
