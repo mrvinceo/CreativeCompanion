@@ -76,8 +76,10 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
 
   // Save quiz progress mutation
   const saveQuizProgress = useMutation({
-    mutationFn: ({ partIndex, score, answers }: { partIndex: number; score: number; answers: { [key: number]: number } }) =>
-      apiRequest(`/api/courses/${course.id}/quiz-progress`, 'POST', { partIndex, score, answers }),
+    mutationFn: async ({ partIndex, score, answers }: { partIndex: number; score: number; answers: { [key: number]: number } }) => {
+      const response = await apiRequest('POST', `/api/courses/${course.id}/quiz-progress`, { partIndex, score, answers });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', course.id, 'quiz-progress'] });
     }
