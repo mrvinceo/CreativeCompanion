@@ -2198,11 +2198,30 @@ If no valuable insights are found, return: {"items": []}`;
       const { courseId } = req.params;
       const { partIndex, score, answers } = req.body;
 
+      console.log("Quiz progress request:", {
+        userId,
+        courseId,
+        partIndex,
+        score,
+        answers,
+        bodyType: typeof req.body,
+        partIndexType: typeof partIndex,
+        scoreType: typeof score,
+        answersType: typeof answers
+      });
+
       if (typeof partIndex !== 'number' || typeof score !== 'number' || !answers) {
+        console.log("Validation failed:", {
+          partIndexValid: typeof partIndex === 'number',
+          scoreValid: typeof score === 'number',
+          answersValid: !!answers
+        });
         return res.status(400).json({ message: "partIndex, score, and answers are required" });
       }
 
+      console.log("Calling storage.updateQuizProgress...");
       const progress = await storage.updateQuizProgress(userId, parseInt(courseId), partIndex, score, answers);
+      console.log("Quiz progress saved successfully:", progress);
       res.json({ progress });
     } catch (error) {
       console.error("Quiz progress error:", error);

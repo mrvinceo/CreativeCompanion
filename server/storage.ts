@@ -371,7 +371,7 @@ export class DatabaseStorage implements IStorage {
   async createNote(insertNote: InsertNote): Promise<Note> {
     const [note] = await db
       .insert(notes)
-      .values(insertNote)
+      .values([insertNote])
       .returning();
     return note;
   }
@@ -449,17 +449,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateNote(id: number, updateData: Partial<InsertNote>): Promise<Note> {
+    const updateFields: any = { updatedAt: new Date() };
+    
+    if (updateData.title !== undefined) updateFields.title = updateData.title;
+    if (updateData.content !== undefined) updateFields.content = updateData.content;
+    if (updateData.link !== undefined) updateFields.link = updateData.link;
+    if (updateData.type !== undefined) updateFields.type = updateData.type;
+    if (updateData.category !== undefined) updateFields.category = updateData.category;
+    if (updateData.tags !== undefined) updateFields.tags = Array.isArray(updateData.tags) ? updateData.tags : [];
+
     const [note] = await db
       .update(notes)
-      .set({ 
-        title: updateData.title,
-        content: updateData.content,
-        link: updateData.link,
-        type: updateData.type,
-        category: updateData.category,
-        tags: updateData.tags,
-        updatedAt: new Date() 
-      })
+      .set(updateFields)
       .where(eq(notes.id, id))
       .returning();
     return note;
