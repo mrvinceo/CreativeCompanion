@@ -144,8 +144,36 @@ export const microCourses = pgTable("micro_courses", {
   completedAt: timestamp("completed_at"),
 });
 
+export const courseQuizProgress = pgTable("course_quiz_progress", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  courseId: integer("course_id").references(() => microCourses.id).notNull(),
+  partIndex: integer("part_index").notNull(),
+  score: integer("score").notNull(), // Percentage score (0-100)
+  answers: jsonb("answers").$type<{ [questionIndex: number]: number }>().notNull(),
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const courseAssignments = pgTable("course_assignments", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  courseId: integer("course_id").references(() => microCourses.id).notNull(),
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  artworkPrompt: text("artwork_prompt").notNull(),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // 'pending' | 'submitted' | 'completed'
+  submissionNotes: text("submission_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  submittedAt: timestamp("submitted_at"),
+});
+
 export const insertNoteSchema = createInsertSchema(notes);
 export const insertMicroCourseSchema = createInsertSchema(microCourses);
+export const insertCourseQuizProgressSchema = createInsertSchema(courseQuizProgress);
+export const insertCourseAssignmentSchema = createInsertSchema(courseAssignments);
 
 // Auth schemas
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -206,6 +234,8 @@ export type InsertDiscoveryLocation = z.infer<typeof insertDiscoveryLocationSche
 export type InsertFavoriteLocation = z.infer<typeof insertFavoriteLocationSchema>;
 export type InsertSavedDiscovery = z.infer<typeof insertSavedDiscoverySchema>;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
+export type InsertCourseQuizProgress = z.infer<typeof insertCourseQuizProgressSchema>;
+export type InsertCourseAssignment = z.infer<typeof insertCourseAssignmentSchema>;
 export type File = typeof files.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
@@ -213,3 +243,6 @@ export type DiscoveryLocation = typeof discoveryLocations.$inferSelect;
 export type FavoriteLocation = typeof favoriteLocations.$inferSelect;
 export type SavedDiscovery = typeof savedDiscoveries.$inferSelect;
 export type Note = typeof notes.$inferSelect;
+export type MicroCourse = typeof microCourses.$inferSelect;
+export type CourseQuizProgress = typeof courseQuizProgress.$inferSelect;
+export type CourseAssignment = typeof courseAssignments.$inferSelect;

@@ -2191,6 +2191,111 @@ If no valuable insights are found, return: {"items": []}`;
     }
   });
 
+  // Quiz Progress endpoints
+  app.post("/api/courses/:courseId/quiz-progress", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const { courseId } = req.params;
+      const { partIndex, score, answers } = req.body;
+
+      if (typeof partIndex !== 'number' || typeof score !== 'number' || !answers) {
+        return res.status(400).json({ message: "partIndex, score, and answers are required" });
+      }
+
+      const progress = await storage.updateQuizProgress(userId, parseInt(courseId), partIndex, score, answers);
+      res.json({ progress });
+    } catch (error) {
+      console.error("Quiz progress error:", error);
+      res.status(500).json({ message: "Failed to save quiz progress" });
+    }
+  });
+
+  app.get("/api/courses/:courseId/quiz-progress", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const { courseId } = req.params;
+
+      const progress = await storage.getQuizProgress(userId, parseInt(courseId));
+      res.json({ progress });
+    } catch (error) {
+      console.error("Get quiz progress error:", error);
+      res.status(500).json({ message: "Failed to get quiz progress" });
+    }
+  });
+
+  // Assignment endpoints
+  app.post("/api/courses/:courseId/assignment", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const { courseId } = req.params;
+      const course = await storage.getMicroCourse(parseInt(courseId));
+
+      if (!course || course.userId !== userId || !course.finalAssignment) {
+        return res.status(404).json({ message: "Course or assignment not found" });
+      }
+
+      // Check if assignment already exists
+      const existingAssignment = await storage.getAssignmentByCourse(userId, parseInt(courseId));
+      if (existingAssignment) {
+        return res.json({ assignment: existingAssignment });
+      }
+
+      // Create new assignment
+      const assignment = await storage.createAssignment({
+        userId,
+        courseId: parseInt(courseId),
+        title: course.finalAssignment.title,
+        description: course.finalAssignment.description,
+        artworkPrompt: course.finalAssignment.artworkPrompt,
+        status: 'pending'
+      });
+
+      res.json({ assignment });
+    } catch (error) {
+      console.error("Create assignment error:", error);
+      res.status(500).json({ message: "Failed to create assignment" });
+    }
+  });
+
+  app.get("/api/assignments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const assignments = await storage.getAssignmentsByUser(userId);
+      res.json({ assignments });
+    } catch (error) {
+      console.error("Get assignments error:", error);
+      res.status(500).json({ message: "Failed to get assignments" });
+    }
+  });
+
+  app.put("/api/assignments/:assignmentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const { assignmentId } = req.params;
+      const { status, conversationId, submissionNotes } = req.body;
+
+      // Verify assignment belongs to user
+      const assignments = await storage.getAssignmentsByUser(userId);
+      const assignment = assignments.find(a => a.id === parseInt(assignmentId));
+      
+      if (!assignment) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+
+      const updatedAssignment = await storage.updateAssignmentStatus(
+        parseInt(assignmentId), 
+        status, 
+        conversationId, 
+        submissionNotes
+      );
+
+      res.json({ assignment: updatedAssignment });
+    } catch (error) {
+      console.error("Update assignment error:", error);
+      res.status(500).json({ message: "Failed to update assignment" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

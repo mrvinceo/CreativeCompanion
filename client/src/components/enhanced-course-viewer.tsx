@@ -3,9 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, Award, BookOpen, Target, Upload } from 'lucide-react';
+import { CheckCircle, XCircle, Award, BookOpen, Target, Upload, ExternalLink } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { nanoid } from 'nanoid';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 interface QuizQuestion {
   question: string;
@@ -55,20 +57,52 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   const [showQuizResults, setShowQuizResults] = useState<{ [partIndex: number]: boolean }>({});
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
-  // Load saved quiz results from localStorage on component mount
-  useEffect(() => {
-    const savedResults = localStorage.getItem(`course-${course.id}-quiz-results`);
-    if (savedResults) {
-      try {
-        const parsed = JSON.parse(savedResults);
-        setQuizScores(parsed.scores || {});
-        setShowQuizResults(parsed.showResults || {});
-      } catch (error) {
-        console.error('Error loading saved quiz results:', error);
-      }
+  // Fetch quiz progress from database
+  const { data: quizProgress, isLoading: loadingProgress } = useQuery({
+    queryKey: ['/api/courses', course.id, 'quiz-progress'],
+    queryFn: () => fetch(`/api/courses/${course.id}/quiz-progress`).then(res => res.json()),
+    enabled: !!course.id
+  });
+
+  // Fetch assignment status
+  const { data: assignment } = useQuery({
+    queryKey: ['/api/courses', course.id, 'assignment'],
+    queryFn: () => fetch(`/api/courses/${course.id}/assignment`, { method: 'POST' }).then(res => res.json()),
+    enabled: !!course.id && course.status === 'ready'
+  });
+
+  // Save quiz progress mutation
+  const saveQuizProgress = useMutation({
+    mutationFn: ({ partIndex, score, answers }: { partIndex: number; score: number; answers: { [key: number]: number } }) =>
+      apiRequest(`/api/courses/${course.id}/quiz-progress`, {
+        method: 'POST',
+        body: JSON.stringify({ partIndex, score, answers })
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', course.id, 'quiz-progress'] });
     }
-  }, [course.id]);
+  });
+
+  // Load quiz progress data when available
+  useEffect(() => {
+    if (quizProgress?.progress) {
+      const scores: { [partIndex: number]: number } = {};
+      const results: { [partIndex: number]: boolean } = {};
+
+      // Get highest score for each part
+      quizProgress.progress.forEach((p: any) => {
+        if (!scores[p.partIndex] || p.score > scores[p.partIndex]) {
+          scores[p.partIndex] = p.score;
+          results[p.partIndex] = true;
+        }
+      });
+
+      setQuizScores(scores);
+      setShowQuizResults(results);
+    }
+  }, [quizProgress]);
 
   const hasStructuredContent = course.parts && course.parts.length > 0;
   const totalParts = hasStructuredContent ? course.parts!.length : 0;
@@ -83,7 +117,7 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
     }));
   };
 
-  const submitQuiz = (partIndex: number) => {
+  const submitQuiz = async (partIndex: number) => {
     const part = course.parts![partIndex];
     const answers = quizAnswers[partIndex] || {};
     let correct = 0;
@@ -95,17 +129,17 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
     });
 
     const score = Math.round((correct / part.quiz.length) * 100);
-    const newQuizScores = { ...quizScores, [partIndex]: score };
-    const newShowResults = { ...showQuizResults, [partIndex]: true };
     
-    setQuizScores(newQuizScores);
-    setShowQuizResults(newShowResults);
-    
-    // Save to localStorage
-    localStorage.setItem(`course-${course.id}-quiz-results`, JSON.stringify({
-      scores: newQuizScores,
-      showResults: newShowResults
-    }));
+    // Save to database
+    try {
+      await saveQuizProgress.mutateAsync({ partIndex, score, answers });
+      
+      // Update local state for immediate feedback
+      setQuizScores(prev => ({ ...prev, [partIndex]: score }));
+      setShowQuizResults(prev => ({ ...prev, [partIndex]: true }));
+    } catch (error) {
+      console.error('Failed to save quiz progress:', error);
+    }
   };
 
   const retakeQuiz = (partIndex: number) => {
@@ -116,21 +150,12 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
       return newAnswers;
     });
     
-    // Hide results for this part
-    const newShowResults = { ...showQuizResults };
-    delete newShowResults[partIndex];
-    setShowQuizResults(newShowResults);
-    
-    // Remove score for this part
-    const newQuizScores = { ...quizScores };
-    delete newQuizScores[partIndex];
-    setQuizScores(newQuizScores);
-    
-    // Update localStorage
-    localStorage.setItem(`course-${course.id}-quiz-results`, JSON.stringify({
-      scores: newQuizScores,
-      showResults: newShowResults
-    }));
+    // Hide results for this part temporarily (score will still be stored in DB)
+    setShowQuizResults(prev => {
+      const newResults = { ...prev };
+      delete newResults[partIndex];
+      return newResults;
+    });
   };
 
   const calculateTotalScore = () => {
@@ -410,12 +435,31 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
                           <p className="text-gray-700 mb-4">
                             Upload your artwork and get personalized feedback from our AI tutor based on the assignment brief.
                           </p>
+                          
+                          {assignment?.assignment && (
+                            <div className="mb-4 p-3 bg-blue-50 rounded border">
+                              <p className="text-sm text-blue-700 mb-2">
+                                Assignment already created. Status: <span className="font-semibold">{assignment.assignment.status}</span>
+                              </p>
+                              {assignment.assignment.conversationId && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setLocation(`/?conversation=${assignment.assignment.conversationId}`)}
+                                >
+                                  <ExternalLink className="w-4 h-4 mr-2" />
+                                  View Submission
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                          
                           <Button 
                             onClick={() => handleAssignmentSubmission()}
                             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                           >
                             <Upload className="w-4 h-4 mr-2" />
-                            Submit Assignment for Feedback
+                            {assignment?.assignment ? 'Create New Submission' : 'Submit Assignment for Feedback'}
                           </Button>
                         </div>
                       ) : (

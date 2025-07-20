@@ -1,5 +1,4 @@
-import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, notes, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type Note, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery, type InsertNote } from "@shared/schema";
-import { microCourses } from "@shared/schema";
+import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, notes, microCourses, courseQuizProgress, courseAssignments, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type Note, type MicroCourse, type CourseQuizProgress, type CourseAssignment, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery, type InsertNote, type InsertCourseQuizProgress, type InsertCourseAssignment } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, ilike, desc } from "drizzle-orm";
 
@@ -89,10 +88,10 @@ export interface IStorage {
       description: string;
       artworkPrompt: string;
     };
-  }): Promise<any>; // Replace any with the correct type
+  }): Promise<MicroCourse>;
 
-  getMicroCoursesByUser(userId: string): Promise<any[]>; // Replace any with the correct type
-  getMicroCourse(id: number): Promise<any>; // Replace any with the correct type
+  getMicroCoursesByUser(userId: string): Promise<MicroCourse[]>;
+  getMicroCourse(id: number): Promise<MicroCourse | undefined>;
   updateMicroCourse(id: number, data: {
     content?: string;
     status?: 'generating' | 'ready' | 'failed';
@@ -113,9 +112,21 @@ export interface IStorage {
       description: string;
       artworkPrompt: string;
     };
-  }): Promise<any>; // Replace any with the correct type
+  }): Promise<MicroCourse>;
 
   deleteMicroCourse(id: number): Promise<void>;
+
+  // Course Quiz Progress methods
+  saveQuizProgress(progress: InsertCourseQuizProgress): Promise<CourseQuizProgress>;
+  getQuizProgress(userId: string, courseId: number): Promise<CourseQuizProgress[]>;
+  getQuizProgressForPart(userId: string, courseId: number, partIndex: number): Promise<CourseQuizProgress | undefined>;
+  updateQuizProgress(userId: string, courseId: number, partIndex: number, score: number, answers: { [questionIndex: number]: number }): Promise<CourseQuizProgress>;
+
+  // Course Assignment methods
+  createAssignment(assignment: InsertCourseAssignment): Promise<CourseAssignment>;
+  getAssignmentsByUser(userId: string): Promise<CourseAssignment[]>;
+  getAssignmentByCourse(userId: string, courseId: number): Promise<CourseAssignment | undefined>;
+  updateAssignmentStatus(assignmentId: number, status: 'pending' | 'submitted' | 'completed', conversationId?: number, submissionNotes?: string): Promise<CourseAssignment>;
 
   getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | null>;
 }
@@ -440,7 +451,15 @@ export class DatabaseStorage implements IStorage {
   async updateNote(id: number, updateData: Partial<InsertNote>): Promise<Note> {
     const [note] = await db
       .update(notes)
-      .set({ ...updateData, updatedAt: new Date() })
+      .set({ 
+        title: updateData.title,
+        content: updateData.content,
+        link: updateData.link,
+        type: updateData.type,
+        category: updateData.category,
+        tags: updateData.tags,
+        updatedAt: new Date() 
+      })
       .where(eq(notes.id, id))
       .returning();
     return note;
@@ -535,13 +554,122 @@ export class DatabaseStorage implements IStorage {
     await db.delete(microCourses).where(eq(microCourses.id, id));
   }
 
+  // Course Quiz Progress methods
+  async saveQuizProgress(progress: InsertCourseQuizProgress): Promise<CourseQuizProgress> {
+    const [savedProgress] = await db.insert(courseQuizProgress)
+      .values({
+        ...progress,
+        completedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return savedProgress;
+  }
+
+  async getQuizProgress(userId: string, courseId: number): Promise<CourseQuizProgress[]> {
+    return await db.select().from(courseQuizProgress)
+      .where(and(
+        eq(courseQuizProgress.userId, userId),
+        eq(courseQuizProgress.courseId, courseId)
+      ))
+      .orderBy(courseQuizProgress.partIndex);
+  }
+
+  async getQuizProgressForPart(userId: string, courseId: number, partIndex: number): Promise<CourseQuizProgress | undefined> {
+    const [progress] = await db.select().from(courseQuizProgress)
+      .where(and(
+        eq(courseQuizProgress.userId, userId),
+        eq(courseQuizProgress.courseId, courseId),
+        eq(courseQuizProgress.partIndex, partIndex)
+      ))
+      .orderBy(desc(courseQuizProgress.score))
+      .limit(1);
+    return progress;
+  }
+
+  async updateQuizProgress(userId: string, courseId: number, partIndex: number, score: number, answers: { [questionIndex: number]: number }): Promise<CourseQuizProgress> {
+    // Check if progress already exists
+    const existing = await this.getQuizProgressForPart(userId, courseId, partIndex);
+    
+    if (existing && existing.score >= score) {
+      // Keep the higher score
+      return existing;
+    }
+
+    // Insert new progress record (we keep all attempts but show highest score)
+    const [newProgress] = await db.insert(courseQuizProgress)
+      .values({
+        userId,
+        courseId,
+        partIndex,
+        score,
+        answers,
+        completedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newProgress;
+  }
+
+  // Course Assignment methods
+  async createAssignment(assignment: InsertCourseAssignment): Promise<CourseAssignment> {
+    const [newAssignment] = await db.insert(courseAssignments)
+      .values({
+        ...assignment,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newAssignment;
+  }
+
+  async getAssignmentsByUser(userId: string): Promise<CourseAssignment[]> {
+    return await db.select().from(courseAssignments)
+      .where(eq(courseAssignments.userId, userId))
+      .orderBy(desc(courseAssignments.createdAt));
+  }
+
+  async getAssignmentByCourse(userId: string, courseId: number): Promise<CourseAssignment | undefined> {
+    const [assignment] = await db.select().from(courseAssignments)
+      .where(and(
+        eq(courseAssignments.userId, userId),
+        eq(courseAssignments.courseId, courseId)
+      ));
+    return assignment;
+  }
+
+  async updateAssignmentStatus(assignmentId: number, status: 'pending' | 'submitted' | 'completed', conversationId?: number, submissionNotes?: string): Promise<CourseAssignment> {
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    };
+    
+    if (conversationId) {
+      updateData.conversationId = conversationId;
+    }
+    
+    if (submissionNotes) {
+      updateData.submissionNotes = submissionNotes;
+    }
+    
+    if (status === 'submitted') {
+      updateData.submittedAt = new Date();
+    }
+
+    const [updatedAssignment] = await db.update(courseAssignments)
+      .set(updateData)
+      .where(eq(courseAssignments.id, assignmentId))
+      .returning();
+    return updatedAssignment;
+  }
+
   async getUserByStripeCustomerId(stripeCustomerId: string) {
     const [user] = await db
       .select()
       .from(users)
       .where(eq(users.stripeCustomerId, stripeCustomerId));
 
-    return user ? user[0] : null;
+    return user || null;
   }
 }
 
