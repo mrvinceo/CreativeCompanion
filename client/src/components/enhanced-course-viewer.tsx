@@ -56,6 +56,7 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   const [quizScores, setQuizScores] = useState<{ [partIndex: number]: number }>({});
   const [showQuizResults, setShowQuizResults] = useState<{ [partIndex: number]: boolean }>({});
   const [courseCompleted, setCourseCompleted] = useState(false);
+  const [submittingQuiz, setSubmittingQuiz] = useState<{ [partIndex: number]: boolean }>({});
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
@@ -76,10 +77,7 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   // Save quiz progress mutation
   const saveQuizProgress = useMutation({
     mutationFn: ({ partIndex, score, answers }: { partIndex: number; score: number; answers: { [key: number]: number } }) =>
-      apiRequest(`/api/courses/${course.id}/quiz-progress`, {
-        method: 'POST',
-        body: JSON.stringify({ partIndex, score, answers })
-      }),
+      apiRequest(`/api/courses/${course.id}/quiz-progress`, 'POST', { partIndex, score, answers }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', course.id, 'quiz-progress'] });
     }
@@ -118,9 +116,15 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
   };
 
   const submitQuiz = async (partIndex: number) => {
+    console.log('submitQuiz called for part:', partIndex);
     const part = course.parts![partIndex];
     const answers = quizAnswers[partIndex] || {};
     let correct = 0;
+    
+    console.log('Quiz answers:', answers);
+    
+    // Set submitting state
+    setSubmittingQuiz(prev => ({ ...prev, [partIndex]: true }));
     
     part.quiz.forEach((question, qIndex) => {
       if (answers[qIndex] === question.correctAnswer) {
@@ -129,16 +133,23 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
     });
 
     const score = Math.round((correct / part.quiz.length) * 100);
+    console.log('Calculated score:', score);
     
     // Save to database
     try {
+      console.log('Saving quiz progress...');
       await saveQuizProgress.mutateAsync({ partIndex, score, answers });
+      console.log('Quiz progress saved successfully');
       
       // Update local state for immediate feedback
       setQuizScores(prev => ({ ...prev, [partIndex]: score }));
       setShowQuizResults(prev => ({ ...prev, [partIndex]: true }));
     } catch (error) {
       console.error('Failed to save quiz progress:', error);
+      alert('Failed to save quiz progress. Please try again.');
+    } finally {
+      // Clear submitting state
+      setSubmittingQuiz(prev => ({ ...prev, [partIndex]: false }));
     }
   };
 
@@ -389,12 +400,14 @@ export function EnhancedCourseViewer({ course, onClose }: EnhancedCourseViewerPr
                       <div className="text-center">
                         <Button 
                           onClick={() => submitQuiz(currentPart)}
-                          disabled={!course.parts![currentPart].quiz.every((_, qIndex) => 
-                            quizAnswers[currentPart]?.[qIndex] !== undefined
-                          )}
+                          disabled={
+                            !course.parts![currentPart].quiz.every((_, qIndex) => 
+                              quizAnswers[currentPart]?.[qIndex] !== undefined
+                            ) || submittingQuiz[currentPart] || saveQuizProgress.isPending
+                          }
                           className="bg-purple-600 hover:bg-purple-700"
                         >
-                          Submit Quiz
+                          {submittingQuiz[currentPart] || saveQuizProgress.isPending ? 'Submitting...' : 'Submit Quiz'}
                         </Button>
                       </div>
                     )}
