@@ -138,6 +138,9 @@ export function setupAuth(app: Express) {
               });
             }
 
+            // Update last login time
+            await storage.updateUserLastLogin(user.id);
+            
             return done(null, user);
           } catch (error) {
             return done(error);
@@ -196,7 +199,11 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth/login", passport.authenticate("local"), (req, res) => {
+  app.post("/api/auth/login", passport.authenticate("local"), async (req, res) => {
+    if (req.user) {
+      // Update last login time
+      await storage.updateUserLastLogin(req.user.id);
+    }
     res.json({ user: req.user });
   });
 

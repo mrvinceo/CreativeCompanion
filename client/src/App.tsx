@@ -14,6 +14,7 @@ import Success from "@/pages/success";
 import Notes from "@/pages/notes";
 import MicroCourses from "./pages/micro-courses";
 import CulturalDiscovery from "@/pages/cultural-discovery";
+import { AdminPage } from "@/pages/admin-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -62,6 +63,9 @@ function Router() {
       </Route>
       <Route path="/cultural-discovery">
         {isAuthenticated ? <CulturalDiscovery /> : <Landing />}
+      </Route>
+      <Route path="/admin">
+        {isAuthenticated ? <AdminPage /> : <Landing />}
       </Route>
       <Route path="/success">
         {isAuthenticated ? <Success /> : <Landing />}

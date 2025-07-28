@@ -128,6 +128,34 @@ export interface IStorage {
   getAssignmentByCourse(userId: string, courseId: number): Promise<CourseAssignment | undefined>;
   updateAssignmentStatus(assignmentId: number, status: 'pending' | 'submitted' | 'completed', conversationId?: number, submissionNotes?: string): Promise<CourseAssignment>;
 
+  // Admin methods
+  updateUserLastLogin(userId: string): Promise<void>;
+  makeUserAdmin(email: string): Promise<User | undefined>;
+  getAdminStats(): Promise<{
+    totalUsers: number;
+    usersByPlan: { free: number; standard: number; premium: number; academic: number };
+    totalConversations: number;
+    totalStorage: number;
+    totalCourses: number;
+    totalNotes: number;
+    totalLocations: number;
+  }>;
+  getAllUsersWithStats(): Promise<Array<{
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    subscriptionPlan: string | null;
+    isAdmin: boolean | null;
+    lastLoginAt: Date | null;
+    createdAt: Date | null;
+    conversationCount: number;
+    storageUsed: number;
+    courseCount: number;
+    noteCount: number;
+    locationCount: number;
+  }>>;
+
   getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | null>;
 }
 
@@ -671,6 +699,138 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.stripeCustomerId, stripeCustomerId));
 
     return user || null;
+  }
+
+  // Admin methods
+  async updateUserLastLogin(userId: string): Promise<void> {
+    await db.update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async makeUserAdmin(email: string): Promise<User | undefined> {
+    const [user] = await db.update(users)
+      .set({ isAdmin: true })
+      .where(eq(users.email, email))
+      .returning();
+    return user;
+  }
+
+  async getAdminStats(): Promise<{
+    totalUsers: number;
+    usersByPlan: { free: number; standard: number; premium: number; academic: number };
+    totalConversations: number;
+    totalStorage: number;
+    totalCourses: number;
+    totalNotes: number;
+    totalLocations: number;
+  }> {
+    // Get total users and users by plan
+    const allUsers = await db.select({
+      subscriptionPlan: users.subscriptionPlan
+    }).from(users);
+
+    const usersByPlan = {
+      free: allUsers.filter(u => !u.subscriptionPlan || u.subscriptionPlan === 'free').length,
+      standard: allUsers.filter(u => u.subscriptionPlan === 'standard').length,
+      premium: allUsers.filter(u => u.subscriptionPlan === 'premium').length,
+      academic: allUsers.filter(u => u.subscriptionPlan === 'academic').length
+    };
+
+    // Get conversation count
+    const conversationCount = await db.select({ count: conversations.id }).from(conversations);
+
+    // Get total storage (sum of all file sizes)
+    const storageResult = await db.select({
+      totalSize: files.size
+    }).from(files);
+    const totalStorage = storageResult.reduce((sum, file) => sum + (file.totalSize || 0), 0);
+
+    // Get course count
+    const courseCount = await db.select({ count: microCourses.id }).from(microCourses);
+
+    // Get note count
+    const noteCount = await db.select({ count: notes.id }).from(notes);
+
+    // Get location count
+    const locationCount = await db.select({ count: discoveryLocations.id }).from(discoveryLocations);
+
+    return {
+      totalUsers: allUsers.length,
+      usersByPlan,
+      totalConversations: conversationCount.length,
+      totalStorage,
+      totalCourses: courseCount.length,
+      totalNotes: noteCount.length,
+      totalLocations: locationCount.length
+    };
+  }
+
+  async getAllUsersWithStats(): Promise<Array<{
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    subscriptionPlan: string | null;
+    isAdmin: boolean | null;
+    lastLoginAt: Date | null;
+    createdAt: Date | null;
+    conversationCount: number;
+    storageUsed: number;
+    courseCount: number;
+    noteCount: number;
+    locationCount: number;
+  }>> {
+    const allUsers = await db.select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      subscriptionPlan: users.subscriptionPlan,
+      isAdmin: users.isAdmin,
+      lastLoginAt: users.lastLoginAt,
+      createdAt: users.createdAt
+    }).from(users);
+
+    // Get stats for each user
+    const usersWithStats = await Promise.all(allUsers.map(async (user) => {
+      // Get conversation count
+      const userConversations = await db.select({ id: conversations.id })
+        .from(conversations)
+        .where(eq(conversations.userId, user.id));
+
+      // Get storage used
+      const userFiles = await db.select({ size: files.size })
+        .from(files)
+        .where(eq(files.userId, user.id));
+      const storageUsed = userFiles.reduce((sum, file) => sum + (file.size || 0), 0);
+
+      // Get course count
+      const userCourses = await db.select({ id: microCourses.id })
+        .from(microCourses)
+        .where(eq(microCourses.userId, user.id));
+
+      // Get note count
+      const userNotes = await db.select({ id: notes.id })
+        .from(notes)
+        .where(eq(notes.userId, user.id));
+
+      // Get location count
+      const userLocations = await db.select({ id: discoveryLocations.id })
+        .from(discoveryLocations)
+        .where(eq(discoveryLocations.userId, user.id));
+
+      return {
+        ...user,
+        conversationCount: userConversations.length,
+        storageUsed,
+        courseCount: userCourses.length,
+        noteCount: userNotes.length,
+        locationCount: userLocations.length
+      };
+    }));
+
+    return usersWithStats;
   }
 }
 

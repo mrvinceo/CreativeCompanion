@@ -82,6 +82,11 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
     queryKey: ['/api/subscription'],
   });
 
+  const { data: adminCheck } = useQuery({
+    queryKey: ['/api/admin/check'],
+    enabled: !!user,
+  });
+
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -585,6 +590,47 @@ export function ProfileDialog({ children }: ProfileDialogProps) {
                 </Card>
               )}
             </div>
+
+            {/* Admin Access */}
+            {adminCheck?.isAdmin && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-lg font-medium">Admin</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Administrative tools and dashboard access
+                    </p>
+                  </div>
+
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive" className="text-xs">Admin</Badge>
+                        <span className="font-medium">Administrative Access</span>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground mb-4">
+                      You have admin privileges to access system dashboard and user management tools.
+                    </p>
+
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        setOpen(false);
+                        window.location.href = '/admin';
+                      }}
+                      className="w-full border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      Open Admin Dashboard
+                      <ExternalLink className="w-3 h-3 ml-1" />
+                    </Button>
+                  </Card>
+                </div>
+              </>
+            )}
 
             {/* Submit Buttons */}
             <div className="flex justify-end space-x-2 pt-4">

@@ -30,6 +30,8 @@ export const users = pgTable("users", {
   billingPeriodStart: timestamp("billing_period_start"),
   artistStatement: text("artist_statement"),
   interests: text("interests").array(),
+  isAdmin: boolean("is_admin").default(false),
+  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
