@@ -1,8 +1,8 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Music, Video, Image, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Music, Video, Image, ChevronLeft, ChevronRight, Play, Pause, Volume2 } from 'lucide-react';
 import { type UploadedFile } from '@/lib/types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface FilePreviewProps {
   files: UploadedFile[];
@@ -10,6 +10,8 @@ interface FilePreviewProps {
 
 export function FilePreview({ files }: FilePreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   if (files.length === 0) return null;
 
@@ -24,6 +26,14 @@ export function FilePreview({ files }: FilePreviewProps) {
 
   const isImageFile = (mimeType: string) => {
     return mimeType.startsWith('image/') && (mimeType.includes('jpeg') || mimeType.includes('jpg') || mimeType.includes('png'));
+  };
+
+  const isAudioFile = (mimeType: string) => {
+    return mimeType.startsWith('audio/');
+  };
+
+  const isVideoFile = (mimeType: string) => {
+    return mimeType.startsWith('video/');
   };
 
   const formatFileSize = (bytes: number) => {
@@ -45,12 +55,25 @@ export function FilePreview({ files }: FilePreviewProps) {
   };
 
   const goToSlide = (index: number) => {
+    // Pause any playing media when switching slides
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
     setCurrentIndex(index);
   };
 
-  // Keyboard navigation
+  // Keyboard navigation and media controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't interfere with media controls when media elements are focused
+      const activeElement = document.activeElement;
+      if (activeElement?.tagName === 'VIDEO' || activeElement?.tagName === 'AUDIO') {
+        return;
+      }
+
       if (files.length <= 1) return;
       
       if (event.key === 'ArrowLeft') {
@@ -104,6 +127,44 @@ export function FilePreview({ files }: FilePreviewProps) {
               alt={currentFile.originalName}
               className="max-w-full max-h-full object-contain"
             />
+          ) : isVideoFile(currentFile.mimeType) ? (
+            <video 
+              ref={videoRef}
+              src={`/api/files/${currentFile.id}/content`}
+              controls
+              className="max-w-full max-h-full object-contain"
+              preload="metadata"
+              controlsList="nodownload"
+            >
+              Your browser does not support the video tag.
+            </video>
+          ) : isAudioFile(currentFile.mimeType) ? (
+            <div className="flex flex-col items-center text-white w-full max-w-md px-4">
+              <div className="mb-6">
+                <div className="relative">
+                  {getFileIcon(currentFile.mimeType)}
+                  <div className="absolute -bottom-2 -right-2 bg-purple-500 rounded-full p-1">
+                    <Volume2 className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+              </div>
+              <audio 
+                ref={audioRef}
+                src={`/api/files/${currentFile.id}/content`}
+                controls
+                className="w-full mb-4"
+                preload="metadata"
+                controlsList="nodownload"
+              >
+                Your browser does not support the audio tag.
+              </audio>
+              <p className="text-sm text-center">
+                {currentFile.originalName}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Audio File
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col items-center text-white">
               {getFileIcon(currentFile.mimeType)}
@@ -148,6 +209,13 @@ export function FilePreview({ files }: FilePreviewProps) {
                   src={`/api/files/${file.id}/content`}
                   alt={file.originalName}
                   className="w-full h-full object-cover"
+                />
+              ) : isVideoFile(file.mimeType) ? (
+                <video 
+                  src={`/api/files/${file.id}/content`}
+                  className="w-full h-full object-cover"
+                  muted
+                  preload="metadata"
                 />
               ) : (
                 <div className="w-full h-full bg-gray-100 flex items-center justify-center">
