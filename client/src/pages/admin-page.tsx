@@ -30,10 +30,10 @@ export function AdminPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">You don't have admin permissions to access this page.</p>
-          <Link href="/profile">
+          <Link href="/">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Profile
+              Back to Home
             </Button>
           </Link>
         </div>
@@ -45,10 +45,10 @@ export function AdminPage() {
     <div className="min-h-screen bg-[#F5F5DC] dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link href="/profile">
+          <Link href="/">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Profile
+              Back to Home
             </Button>
           </Link>
         </div>
