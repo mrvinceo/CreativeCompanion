@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Palette, Camera, Music, FileText, Sparkles, ArrowRight } from 'lucide-react';
 import refynLogoPath from '@assets/Asset 8@4x_1751642744375.png';
+import { LegalFooter } from '@/components/legal-footer';
 
 export default function Landing() {
   return (
@@ -123,10 +124,8 @@ export default function Landing() {
         </section>
       </main>
       
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 text-center py-4">
-        <p>© Ryzomi 2025</p>
-      </footer>
+      {/* Legal Footer */}
+      <LegalFooter className="bg-gray-900" variant="dark" />
     </div>
   );
 }

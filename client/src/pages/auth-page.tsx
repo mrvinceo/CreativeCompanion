@@ -13,6 +13,7 @@ import { loginSchema, registerSchema } from "@shared/schema";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { LegalFooter } from "@/components/legal-footer";
 
 type LoginData = z.infer<typeof loginSchema>;
 type RegisterData = z.infer<typeof registerSchema>;
@@ -145,7 +146,8 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
+      <div className="flex-1 flex flex-col lg:flex-row">
       {/* Left side - Auth forms */}
       <div className="flex-1 flex items-center justify-center p-4 lg:p-8">
         <div className="w-full max-w-md">
@@ -343,6 +345,20 @@ export default function AuthPage() {
               </Form>
             )}
 
+            {!isLogin && (
+              <div className="text-xs text-center text-muted-foreground mt-4 p-3 bg-muted/50 rounded-md">
+                By creating an account, you agree to our{" "}
+                <a href="/attached_assets/Refyn_Terms_of_service_1755113104517.pdf" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a href="/attached_assets/Refyn_Privacy_Policy_1755113104491.pdf" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Privacy Policy
+                </a>
+                .
+              </div>
+            )}
+
             <div className="text-center text-sm">
               <Button 
                 variant="link" 
@@ -396,6 +412,10 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+      </div>
+      
+      {/* Legal Footer */}
+      <LegalFooter className="bg-background/80 backdrop-blur-sm border-t" variant="light" />
     </div>
   );
 }

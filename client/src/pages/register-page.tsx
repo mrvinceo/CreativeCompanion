@@ -12,6 +12,7 @@ import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import logoPath from "@assets/Asset 8@4x_1751642744375.png";
+import { LegalFooter } from "@/components/legal-footer";
 
 const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -85,7 +86,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
         {/* Left side - Form */}
         <div className="w-full max-w-md mx-auto">
@@ -233,6 +235,18 @@ export default function RegisterPage() {
                 </form>
               </Form>
 
+              <div className="text-xs text-center text-slate-600 bg-slate-50 p-3 rounded-md">
+                By creating an account, you agree to our{" "}
+                <a href="/attached_assets/Refyn_Terms_of_service_1755113104517.pdf" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a href="/attached_assets/Refyn_Privacy_Policy_1755113104491.pdf" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
+                  Privacy Policy
+                </a>
+                .
+              </div>
+
               <div className="text-center text-sm text-slate-600">
                 Already have an account?{" "}
                 <Link href="/auth" className="text-primary hover:underline font-medium">
@@ -272,6 +286,10 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+      </div>
+      
+      {/* Legal Footer */}
+      <LegalFooter className="bg-white/80 backdrop-blur-sm border-t border-gray-200" variant="light" />
     </div>
   );
 }
