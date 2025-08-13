@@ -9,6 +9,7 @@ import { Client } from "@replit/object-storage";
 import { fileURLToPath } from 'url';
 import { insertFileSchema, insertConversationSchema, insertMessageSchema, insertNoteSchema } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { discoverCulturalEvents } from "./gemini";
 import Stripe from "stripe";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1801,6 +1802,39 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
     } catch (error) {
       console.error("Get discoveries error:", error);
       res.status(500).json({ message: "Failed to get discoveries" });
+    }
+  });
+
+  // Discover cultural events
+  app.post("/api/discover-events", isAuthenticated, async (req: any, res) => {
+    try {
+      const { location, dateRange } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      if (!location) {
+        return res.status(400).json({ message: "Location is required" });
+      }
+
+      // Get user's interests for personalized event discovery
+      const user = await storage.getUser(userId);
+      const userInterests = user?.interests || [];
+
+      console.log(`Discovering events for location: ${location}, interests: ${userInterests.join(', ')}`);
+
+      // Use Gemini to discover cultural events
+      const events = await discoverCulturalEvents(location, userInterests, dateRange);
+
+      res.json({ events, location, userInterests });
+    } catch (error) {
+      console.error("Event discovery error:", error);
+      res.status(500).json({ 
+        message: "Failed to discover events",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

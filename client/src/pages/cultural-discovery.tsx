@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { MapPin, Heart, Search, Loader2, Star, Camera, Music, Palette, BookOpen, ArrowLeft } from "lucide-react";
+import { MapPin, Heart, Search, Loader2, Star, Camera, Music, Palette, BookOpen, ArrowLeft, Calendar, Clock, ExternalLink, MapPin as LocationIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { GoogleMap } from "@/components/google-map";
 import { MobileLayout } from "@/components/mobile-layout";
@@ -48,6 +48,19 @@ interface SavedDiscovery {
   createdAt: string;
 }
 
+interface CulturalEvent {
+  title: string;
+  description: string;
+  startDate: string;
+  endDate?: string;
+  venue: string;
+  address: string;
+  category: string;
+  price?: string;
+  website?: string;
+  organizer?: string;
+}
+
 const categoryIcons = {
   museum: <Palette className="w-4 h-4" />,
   gallery: <Camera className="w-4 h-4" />,
@@ -72,6 +85,8 @@ export default function CulturalDiscovery() {
   const [mapMode, setMapMode] = useState<'current' | 'favorites'>('current');
   const [focusedLocation, setFocusedLocation] = useState<DiscoveryLocation | null>(null);
   const [activeTab, setActiveTab] = useState<string>('current-results');
+  const [eventsResults, setEventsResults] = useState<CulturalEvent[]>([]);
+  const [eventsLocation, setEventsLocation] = useState<string>('');
 
   // Get user's current location
   useEffect(() => {
@@ -204,6 +219,31 @@ export default function CulturalDiscovery() {
     },
   });
 
+  // Discover cultural events mutation
+  const discoverEventsMutation = useMutation({
+    mutationFn: async (params: { location: string; dateRange?: { start: string; end: string } }) => {
+      const response = await apiRequest("POST", "/api/discover-events", params);
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      setEventsResults(data.events || []);
+      setEventsLocation(variables.location);
+      
+      toast({
+        title: "Events Discovered",
+        description: `Found ${data.events?.length || 0} cultural events in ${variables.location}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Events Discovery Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDiscoverNearby = () => {
     if (userLocation) {
       discoverLocationsMutation.mutate({
@@ -258,6 +298,19 @@ export default function CulturalDiscovery() {
     }
     
     discoverLocationsMutation.mutate({ searchQuery });
+  };
+
+  const handleSearchEvents = () => {
+    if (!eventsLocation.trim()) {
+      toast({
+        title: "Location Required",
+        description: "Please enter a location to search for events",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    discoverEventsMutation.mutate({ location: eventsLocation });
   };
 
   const handleLocationClick = (location: DiscoveryLocation) => {
@@ -397,7 +450,8 @@ export default function CulturalDiscovery() {
       {/* Tabs for different views */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="current-results">Current Results</TabsTrigger>
+          <TabsTrigger value="current-results">Locations</TabsTrigger>
+          <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="favorites">Favorites</TabsTrigger>
           <TabsTrigger value="map-view">Map View</TabsTrigger>
         </TabsList>
@@ -484,6 +538,126 @@ export default function CulturalDiscovery() {
                 <div className="text-center p-8 text-muted-foreground">
                   <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>Search for a location or use "Discover Nearby Places" to see cultural points of interest here.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="events">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Cultural Events
+              </CardTitle>
+              <CardDescription>
+                Discover cultural events and activities based on your interests
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Events Search */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter a city or location for events..."
+                  value={eventsLocation}
+                  onChange={(e) => setEventsLocation(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearchEvents()}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleSearchEvents}
+                  disabled={discoverEventsMutation.isPending}
+                >
+                  {discoverEventsMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  Search Events
+                </Button>
+              </div>
+
+              {/* Events Results */}
+              {eventsResults.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    Found {eventsResults.length} events in {eventsLocation}
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {eventsResults.map((event, index) => (
+                      <Card key={index} className="h-fit">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg leading-tight">
+                                {event.title}
+                              </CardTitle>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="secondary" className="text-xs">
+                                  <Music className="w-3 h-3 mr-1" />
+                                  {event.category}
+                                </Badge>
+                                {event.price && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {event.price}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            {event.website && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(event.website, '_blank')}
+                                className="text-muted-foreground hover:text-blue-500"
+                                title="Visit website"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0 space-y-3">
+                          <p className="text-sm text-muted-foreground line-clamp-3">
+                            {event.description}
+                          </p>
+                          
+                          <div className="space-y-2 text-xs">
+                            <div className="flex items-center text-muted-foreground">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {new Date(event.startDate).toLocaleDateString()}
+                              {event.endDate && event.endDate !== event.startDate && (
+                                <span> - {new Date(event.endDate).toLocaleDateString()}</span>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center text-muted-foreground">
+                              <LocationIcon className="w-3 h-3 mr-1" />
+                              {event.venue}
+                            </div>
+                            
+                            {event.address && (
+                              <div className="text-muted-foreground pl-4">
+                                {event.address}
+                              </div>
+                            )}
+                            
+                            {event.organizer && (
+                              <div className="text-muted-foreground">
+                                <strong>Organizer:</strong> {event.organizer}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Search for a location to discover cultural events and activities.</p>
                 </div>
               )}
             </CardContent>

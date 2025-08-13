@@ -154,6 +154,125 @@ export async function generateCourseImage(imagePrompt: string): Promise<string> 
   }
 }
 
+export interface CulturalEvent {
+  title: string;
+  description: string;
+  startDate: string;
+  endDate?: string;
+  venue: string;
+  address: string;
+  category: string;
+  price?: string;
+  website?: string;
+  organizer?: string;
+}
+
+export async function discoverCulturalEvents(
+  location: string,
+  userInterests: string[],
+  dateRange?: { start: string; end: string }
+): Promise<CulturalEvent[]> {
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-2.0-flash-exp",
+    tools: [{ googleSearch: {} }]
+  });
+
+  const interestsText = userInterests.length > 0 
+    ? userInterests.join(', ') 
+    : 'art, music, theater, dance, photography, literature, cultural activities';
+
+  const dateFilter = dateRange 
+    ? `between ${dateRange.start} and ${dateRange.end}`
+    : 'in the next 2 months';
+
+  const prompt = `Find current cultural events in ${location} ${dateFilter} that are related to these interests: ${interestsText}.
+
+I'm looking for:
+- Art exhibitions and gallery openings
+- Music concerts and performances
+- Theater and dance shows
+- Film screenings and festivals
+- Literary events and readings
+- Workshops and creative classes
+- Cultural festivals and celebrations
+- Museum events and special exhibitions
+
+For each event, provide:
+- Title
+- Brief description
+- Start date (and end date if applicable)
+- Venue name
+- Full address
+- Category (exhibition, concert, theater, workshop, festival, etc.)
+- Ticket price or "Free" if applicable
+- Website URL if available
+- Organizer name
+
+Format the response as a JSON array of events. Only include real, currently scheduled events that you can verify through search. Limit to 10-15 most relevant events.
+
+Example format:
+[
+  {
+    "title": "Contemporary Art Exhibition",
+    "description": "Featuring local emerging artists...",
+    "startDate": "2025-02-01",
+    "endDate": "2025-02-28",
+    "venue": "City Art Gallery",
+    "address": "123 Main St, City, State",
+    "category": "exhibition",
+    "price": "$15",
+    "website": "https://example.com",
+    "organizer": "City Art Gallery"
+  }
+]`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    console.log("Event discovery response:", text);
+    
+    // Parse the JSON response
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.warn("No valid JSON array found in events response");
+      return [];
+    }
+    
+    const eventsData = JSON.parse(jsonMatch[0]);
+    
+    // Validate the structure
+    if (!Array.isArray(eventsData)) {
+      console.warn("Events response is not an array");
+      return [];
+    }
+    
+    // Filter and validate events
+    const validEvents = eventsData.filter(event => 
+      event.title && event.venue && event.startDate
+    ).map(event => ({
+      title: event.title,
+      description: event.description || '',
+      startDate: event.startDate,
+      endDate: event.endDate || null,
+      venue: event.venue,
+      address: event.address || '',
+      category: event.category || 'event',
+      price: event.price || '',
+      website: event.website || '',
+      organizer: event.organizer || ''
+    }));
+    
+    console.log(`Found ${validEvents.length} valid events`);
+    return validEvents;
+  } catch (error) {
+    console.error("Gemini events discovery error:", error);
+    // Return empty array instead of throwing to allow graceful fallback
+    return [];
+  }
+}
+
 function createPlaceholderSVG(prompt: string): string {
   const colors = ['#F5A623', '#E91E63', '#2196F3', '#4CAF50', '#FF9800'];
   const color = colors[Math.floor(Math.random() * colors.length)];
