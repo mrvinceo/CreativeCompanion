@@ -377,6 +377,23 @@ export default function CulturalDiscovery() {
     discoverEventsMutation.mutate({ location: eventsLocation });
   };
 
+  const handleDiscoverNearbyEvents = () => {
+    if (!userLocation) {
+      toast({
+        title: "Location Access Required",
+        description: "Please enable location access to discover nearby events",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create a location string from coordinates
+    const locationString = `${userLocation.latitude}, ${userLocation.longitude}`;
+    setEventsLocation(locationString);
+    
+    discoverEventsMutation.mutate({ location: locationString });
+  };
+
   const handleLocationClick = (location: DiscoveryLocation) => {
     setSelectedLocation(location);
     setMapViewOpen(true);
@@ -658,6 +675,21 @@ export default function CulturalDiscovery() {
                     <Search className="w-4 h-4" />
                   )}
                   Search Events
+                </Button>
+              </div>
+
+              <div className="flex justify-center">
+                <Button 
+                  variant="outline" 
+                  onClick={handleDiscoverNearbyEvents}
+                  disabled={discoverEventsMutation.isPending || !userLocation}
+                >
+                  {discoverEventsMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <MapPin className="w-4 h-4 mr-2" />
+                  )}
+                  Discover Nearby Events
                 </Button>
               </div>
 

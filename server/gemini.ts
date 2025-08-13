@@ -185,7 +185,13 @@ export async function discoverCulturalEvents(
     ? `between ${dateRange.start} and ${dateRange.end}`
     : 'in the next 2 months';
 
-  const prompt = `Find current cultural events in ${location} ${dateFilter} that are related to these interests: ${interestsText}.
+  // Check if location is coordinates (latitude, longitude format)
+  const isCoordinates = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/.test(location.trim());
+  const locationDescription = isCoordinates 
+    ? `near coordinates ${location} (find the nearest city/area name and search for events there)`
+    : location;
+
+  const prompt = `Find current cultural events ${locationDescription} ${dateFilter} that are related to these interests: ${interestsText}.
 
 I'm looking for:
 - Art exhibitions and gallery openings
