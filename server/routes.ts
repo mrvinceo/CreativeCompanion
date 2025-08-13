@@ -7,7 +7,7 @@ import multer from "multer";
 import path from "path";
 import { Client } from "@replit/object-storage";
 import { fileURLToPath } from 'url';
-import { insertFileSchema, insertConversationSchema, insertMessageSchema, insertNoteSchema } from "@shared/schema";
+import { insertFileSchema, insertConversationSchema, insertMessageSchema, insertNoteSchema, insertFavoriteEventSchema } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { discoverCulturalEvents } from "./gemini";
 import Stripe from "stripe";
@@ -1835,6 +1835,43 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
         message: "Failed to discover events",
         error: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Add event to favorites
+  app.post("/api/favorite-event", isAuthenticated, async (req: any, res) => {
+    try {
+      const eventData = insertFavoriteEventSchema.parse({ ...req.body, userId: req.user?.id });
+      const favorite = await storage.createFavoriteEvent(eventData);
+      res.json({ favorite });
+    } catch (error) {
+      console.error("Favorite event error:", error);
+      res.status(500).json({ message: "Failed to favorite event" });
+    }
+  });
+
+  // Remove event from favorites
+  app.delete("/api/favorite-event/:eventId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { eventId } = req.params;
+      const userId = req.user?.id;
+      await storage.removeFavoriteEvent(userId, parseInt(eventId));
+      res.json({ message: "Event removed from favorites" });
+    } catch (error) {
+      console.error("Remove favorite event error:", error);
+      res.status(500).json({ message: "Failed to remove favorite event" });
+    }
+  });
+
+  // Get user's favorite events
+  app.get("/api/favorite-events", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const favorites = await storage.getFavoriteEventsByUser(userId);
+      res.json({ favorites });
+    } catch (error) {
+      console.error("Get favorite events error:", error);
+      res.status(500).json({ message: "Failed to get favorite events" });
     }
   });
 

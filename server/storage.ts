@@ -1,4 +1,4 @@
-import { users, files, conversations, messages, discoveryLocations, favoriteLocations, savedDiscoveries, notes, microCourses, courseQuizProgress, courseAssignments, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type SavedDiscovery, type Note, type MicroCourse, type CourseQuizProgress, type CourseAssignment, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertSavedDiscovery, type InsertNote, type InsertCourseQuizProgress, type InsertCourseAssignment } from "@shared/schema";
+import { users, files, conversations, messages, discoveryLocations, favoriteLocations, favoriteEvents, savedDiscoveries, notes, microCourses, courseQuizProgress, courseAssignments, type User, type UpsertUser, type File, type Conversation, type Message, type DiscoveryLocation, type FavoriteLocation, type FavoriteEvent, type SavedDiscovery, type Note, type MicroCourse, type CourseQuizProgress, type CourseAssignment, type InsertFile, type InsertConversation, type InsertMessage, type InsertDiscoveryLocation, type InsertFavoriteLocation, type InsertFavoriteEvent, type InsertSavedDiscovery, type InsertNote, type InsertCourseQuizProgress, type InsertCourseAssignment } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, ilike, desc } from "drizzle-orm";
 
@@ -52,6 +52,10 @@ export interface IStorage {
   createFavoriteLocation(favorite: InsertFavoriteLocation): Promise<FavoriteLocation>;
   getFavoriteLocationsByUser(userId: string): Promise<FavoriteLocation[]>;
   removeFavoriteLocation(userId: string, locationId: number): Promise<void>;
+
+  createFavoriteEvent(favorite: InsertFavoriteEvent): Promise<FavoriteEvent>;
+  getFavoriteEventsByUser(userId: string): Promise<FavoriteEvent[]>;
+  removeFavoriteEvent(userId: string, eventId: number): Promise<void>;
 
   createSavedDiscovery(discovery: InsertSavedDiscovery): Promise<SavedDiscovery>;
   getSavedDiscoveriesByUser(userId: string): Promise<SavedDiscovery[]>;
@@ -377,6 +381,31 @@ export class DatabaseStorage implements IStorage {
   async removeFavoriteLocation(userId: string, locationId: number): Promise<void> {
     await db.delete(favoriteLocations)
       .where(and(eq(favoriteLocations.userId, userId), eq(favoriteLocations.locationId, locationId)));
+  }
+
+  async createFavoriteEvent(favoriteEventData: InsertFavoriteEvent): Promise<FavoriteEvent> {
+    const [favoriteEvent] = await db
+      .insert(favoriteEvents)
+      .values(favoriteEventData)
+      .returning();
+    return favoriteEvent;
+  }
+
+  async getFavoriteEventsByUser(userId: string): Promise<FavoriteEvent[]> {
+    return await db
+      .select()
+      .from(favoriteEvents)
+      .where(eq(favoriteEvents.userId, userId))
+      .orderBy(desc(favoriteEvents.createdAt));
+  }
+
+  async removeFavoriteEvent(userId: string, eventId: number): Promise<void> {
+    await db
+      .delete(favoriteEvents)
+      .where(and(
+        eq(favoriteEvents.userId, userId),
+        eq(favoriteEvents.id, eventId)
+      ));
   }
 
   async createSavedDiscovery(insertDiscovery: InsertSavedDiscovery): Promise<SavedDiscovery> {

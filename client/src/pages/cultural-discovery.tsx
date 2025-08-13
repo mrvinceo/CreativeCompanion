@@ -61,6 +61,23 @@ interface CulturalEvent {
   organizer?: string;
 }
 
+interface FavoriteEvent {
+  id: number;
+  userId: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate?: string;
+  venue: string;
+  address: string;
+  category: string;
+  price?: string;
+  website?: string;
+  organizer?: string;
+  notes?: string;
+  createdAt: string;
+}
+
 const categoryIcons = {
   museum: <Palette className="w-4 h-4" />,
   gallery: <Camera className="w-4 h-4" />,
@@ -124,6 +141,11 @@ export default function CulturalDiscovery() {
   // Fetch favorite locations
   const { data: favoritesData } = useQuery({
     queryKey: ["/api/favorite-locations"],
+  });
+
+  // Fetch favorite events
+  const { data: favoriteEventsData } = useQuery({
+    queryKey: ["/api/favorite-events"],
   });
 
   // Fetch saved discoveries
@@ -244,6 +266,48 @@ export default function CulturalDiscovery() {
     },
   });
 
+  // Add event to favorites mutation
+  const addEventToFavoritesMutation = useMutation({
+    mutationFn: async (event: CulturalEvent) => {
+      return await apiRequest("POST", "/api/favorite-event", event);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/favorite-events"] });
+      toast({
+        title: "Added to Favorites",
+        description: "Event saved to your favorites",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Favorite",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Remove event from favorites mutation
+  const removeEventFromFavoritesMutation = useMutation({
+    mutationFn: async (eventId: number) => {
+      return await apiRequest("DELETE", `/api/favorite-event/${eventId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/favorite-events"] });
+      toast({
+        title: "Removed from Favorites",
+        description: "Event removed from your favorites",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Remove",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDiscoverNearby = () => {
     if (userLocation) {
       discoverLocationsMutation.mutate({
@@ -327,6 +391,24 @@ export default function CulturalDiscovery() {
       removeFromFavoritesMutation.mutate(locationId);
     } else {
       addToFavoritesMutation.mutate({ locationId });
+    }
+  };
+
+  const isEventFavorited = (event: CulturalEvent) => {
+    return favoriteEventsData?.favorites?.some((fav: FavoriteEvent) => 
+      fav.title === event.title && fav.venue === event.venue && fav.startDate === event.startDate
+    );
+  };
+
+  const toggleEventFavorite = (event: CulturalEvent) => {
+    const favoriteEvent = favoriteEventsData?.favorites?.find((fav: FavoriteEvent) => 
+      fav.title === event.title && fav.venue === event.venue && fav.startDate === event.startDate
+    );
+    
+    if (favoriteEvent) {
+      removeEventFromFavoritesMutation.mutate(favoriteEvent.id);
+    } else {
+      addEventToFavoritesMutation.mutate(event);
     }
   };
 
@@ -453,6 +535,7 @@ export default function CulturalDiscovery() {
           <TabsTrigger value="current-results">Locations</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="favorites">Favorites</TabsTrigger>
+          <TabsTrigger value="favorite-events">Favorite Events</TabsTrigger>
           <TabsTrigger value="map-view">Map View</TabsTrigger>
         </TabsList>
 
@@ -605,17 +688,28 @@ export default function CulturalDiscovery() {
                                 )}
                               </div>
                             </div>
-                            {event.website && (
+                            <div className="flex gap-1">
+                              {event.website && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(event.website, '_blank')}
+                                  className="text-muted-foreground hover:text-blue-500"
+                                  title="Visit website"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => window.open(event.website, '_blank')}
-                                className="text-muted-foreground hover:text-blue-500"
-                                title="Visit website"
+                                onClick={() => toggleEventFavorite(event)}
+                                className={isEventFavorited(event) ? "text-red-500" : "text-muted-foreground hover:text-red-500"}
+                                title={isEventFavorited(event) ? "Remove from favorites" : "Add to favorites"}
                               >
-                                <ExternalLink className="w-4 h-4" />
+                                <Heart className={`w-4 h-4 ${isEventFavorited(event) ? "fill-current" : ""}`} />
                               </Button>
-                            )}
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0 space-y-3">
@@ -745,6 +839,118 @@ export default function CulturalDiscovery() {
                   );
                 })}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="favorite-events">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="w-5 h-5" />
+                Favorite Events
+              </CardTitle>
+              <CardDescription>
+                Events you've saved for later
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {favoriteEventsData?.favorites && favoriteEventsData.favorites.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {favoriteEventsData.favorites.map((favoriteEvent: FavoriteEvent) => (
+                    <Card key={favoriteEvent.id} className="h-fit">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-lg leading-tight">
+                              {favoriteEvent.title}
+                            </CardTitle>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="secondary" className="text-xs">
+                                <Music className="w-3 h-3 mr-1" />
+                                {favoriteEvent.category}
+                              </Badge>
+                              {favoriteEvent.price && (
+                                <Badge variant="outline" className="text-xs">
+                                  {favoriteEvent.price}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            {favoriteEvent.website && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(favoriteEvent.website, '_blank')}
+                                className="text-muted-foreground hover:text-blue-500"
+                                title="Visit website"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeEventFromFavoritesMutation.mutate(favoriteEvent.id)}
+                              className="text-red-500"
+                              title="Remove from favorites"
+                            >
+                              <Heart className="w-4 h-4 fill-current" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0 space-y-3">
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          {favoriteEvent.description}
+                        </p>
+                        
+                        <div className="space-y-2 text-xs">
+                          <div className="flex items-center text-muted-foreground">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {new Date(favoriteEvent.startDate).toLocaleDateString()}
+                            {favoriteEvent.endDate && favoriteEvent.endDate !== favoriteEvent.startDate && (
+                              <span> - {new Date(favoriteEvent.endDate).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center text-muted-foreground">
+                            <LocationIcon className="w-3 h-3 mr-1" />
+                            {favoriteEvent.venue}
+                          </div>
+                          
+                          {favoriteEvent.address && (
+                            <div className="text-muted-foreground pl-4">
+                              {favoriteEvent.address}
+                            </div>
+                          )}
+                          
+                          {favoriteEvent.organizer && (
+                            <div className="text-muted-foreground">
+                              <strong>Organizer:</strong> {favoriteEvent.organizer}
+                            </div>
+                          )}
+
+                          {favoriteEvent.notes && (
+                            <div className="text-xs">
+                              <strong>Your Notes:</strong>
+                              <p className="mt-1 text-muted-foreground">
+                                {favoriteEvent.notes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <Heart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No favorite events yet. Heart events you'd like to save for later!</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

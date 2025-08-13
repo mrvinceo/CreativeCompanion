@@ -91,6 +91,23 @@ export const favoriteLocations = pgTable("favorite_locations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const favoriteEvents = pgTable("favorite_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  startDate: varchar("start_date").notNull(),
+  endDate: varchar("end_date"),
+  venue: varchar("venue").notNull(),
+  address: text("address"),
+  category: varchar("category"),
+  price: varchar("price"),
+  website: varchar("website"),
+  organizer: varchar("organizer"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const savedDiscoveries = pgTable("saved_discoveries", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
@@ -221,6 +238,11 @@ export const insertFavoriteLocationSchema = createInsertSchema(favoriteLocations
   createdAt: true,
 });
 
+export const insertFavoriteEventSchema = createInsertSchema(favoriteEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertSavedDiscoverySchema = createInsertSchema(savedDiscoveries).omit({
   id: true,
   createdAt: true,
@@ -234,6 +256,7 @@ export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type InsertDiscoveryLocation = z.infer<typeof insertDiscoveryLocationSchema>;
 export type InsertFavoriteLocation = z.infer<typeof insertFavoriteLocationSchema>;
+export type InsertFavoriteEvent = z.infer<typeof insertFavoriteEventSchema>;
 export type InsertSavedDiscovery = z.infer<typeof insertSavedDiscoverySchema>;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
 export type InsertCourseQuizProgress = z.infer<typeof insertCourseQuizProgressSchema>;
@@ -243,6 +266,7 @@ export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type DiscoveryLocation = typeof discoveryLocations.$inferSelect;
 export type FavoriteLocation = typeof favoriteLocations.$inferSelect;
+export type FavoriteEvent = typeof favoriteEvents.$inferSelect;
 export type SavedDiscovery = typeof savedDiscoveries.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type MicroCourse = typeof microCourses.$inferSelect;
