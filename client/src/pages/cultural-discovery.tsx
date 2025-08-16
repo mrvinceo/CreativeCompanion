@@ -707,7 +707,12 @@ export default function CulturalDiscovery() {
                 favoritesData?.favorites?.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {favoritesData.favorites.map((favorite: any) => {
-                      const location = favorite.location;
+                      // Find the location data from discoveryResults using the locationId
+                      const location = discoveryResults.find((loc: DiscoveryLocation) => loc.id === favorite.locationId);
+                      
+                      // Skip if location data not found
+                      if (!location) return null;
+                      
                       return (
                         <Card 
                           key={location.id} 
@@ -962,9 +967,9 @@ export default function CulturalDiscovery() {
 
               {eventsView === 'favorites' && (
                 // Favorites view - show favorited events
-                favoriteEventsData?.favoriteEvents?.length > 0 ? (
+                favoriteEventsData?.favorites?.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2">
-                    {favoriteEventsData.favoriteEvents.map((favoriteEvent: any, index: number) => (
+                    {favoriteEventsData.favorites.map((favoriteEvent: any, index: number) => (
                       <Card key={index} className="h-fit">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
