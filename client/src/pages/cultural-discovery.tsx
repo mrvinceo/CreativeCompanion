@@ -290,7 +290,6 @@ export default function CulturalDiscovery() {
     },
   });
 
-  // Remove event from favorites mutation
   const removeEventFromFavoritesMutation = useMutation({
     mutationFn: async (eventId: number) => {
       return await apiRequest("DELETE", `/api/favorite-event/${eventId}`);
@@ -310,6 +309,12 @@ export default function CulturalDiscovery() {
       });
     },
   });
+
+  const removeFavoriteEvent = (eventId: number) => {
+    removeEventFromFavoritesMutation.mutate(eventId);
+  };
+
+
 
   const handleDiscoverNearby = () => {
     if (userLocation) {
@@ -945,13 +950,17 @@ export default function CulturalDiscovery() {
                       </Card>
                     ))}
                   </div>
-                  ) : (
-                    <div className="text-center p-8 text-muted-foreground">
-                      <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Search for a location to discover cultural events and activities.</p>
-                    </div>
-                  )}
+                </div>
               ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Search for a location to discover cultural events and activities.</p>
+                </div>
+              )}
+              </>
+              )}
+
+              {eventsView === 'favorites' && (
                 // Favorites view - show favorited events
                 favoriteEventsData?.favoriteEvents?.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2">
