@@ -3,7 +3,7 @@ import { RefynLogo } from '@/components/refyn-logo';
 import { ProfileDialog } from '@/components/profile-dialog';
 import { MobileConversationHistory } from '@/components/mobile-conversation-history';
 import { PWAInstallButton } from '@/components/pwa-install-button';
-import { User, LogOut, ListRestart, MapPin, CirclePlus, BookOpen, GraduationCap } from 'lucide-react';
+import { User, LogOut, ListRestart, MapPin, CirclePlus, BookOpen, GraduationCap, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -65,12 +65,31 @@ export function MobileLayout({ children, onNewConversation, onSelectConversation
     return '';
   };
 
+  const isHomePage = location === '/';
+  
+  const handleBackNavigation = () => {
+    // Navigate back to home page
+    setLocation('/');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Sticky Header - GiffGaff Style Dark */}
       <header className="sticky top-0 z-50 h-20 bg-gray-900 text-white px-4 py-3 shadow-lg">
         <div className="flex items-center justify-between">
-          <div className="w-10"></div> {/* Spacer for centering */}
+          <div className="w-10 flex justify-start">
+            {!isHomePage && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleBackNavigation}
+                className="p-2 text-white hover:bg-gray-800"
+                title="Back to Home"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
+          </div>
           <RefynLogo size={94} showTitle={false} />
           <div className="flex items-center space-x-2">
             <PWAInstallButton />
