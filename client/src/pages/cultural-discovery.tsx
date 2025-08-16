@@ -107,6 +107,7 @@ export default function CulturalDiscovery() {
   const [mapDataType, setMapDataType] = useState<'locations' | 'events'>('locations');
   const [eventsResults, setEventsResults] = useState<CulturalEvent[]>([]);
   const [eventsLocation, setEventsLocation] = useState<string>('');
+  const [selectedEvent, setSelectedEvent] = useState<CulturalEvent | null>(null);
 
   // Get user's current location
   useEffect(() => {
@@ -408,7 +409,7 @@ export default function CulturalDiscovery() {
   };
 
   const isFavorite = (locationId: number) => {
-    return favoritesData?.favorites?.some((fav: FavoriteLocation) => fav.locationId === locationId);
+    return (favoritesData as any)?.favorites?.some((fav: FavoriteLocation) => fav.locationId === locationId);
   };
 
   const toggleFavorite = (locationId: number) => {
@@ -420,13 +421,13 @@ export default function CulturalDiscovery() {
   };
 
   const isEventFavorited = (event: CulturalEvent) => {
-    return favoriteEventsData?.favorites?.some((fav: FavoriteEvent) => 
+    return (favoriteEventsData as any)?.favorites?.some((fav: FavoriteEvent) => 
       fav.title === event.title && fav.venue === event.venue && fav.startDate === event.startDate
     );
   };
 
   const toggleEventFavorite = (event: CulturalEvent) => {
-    const favoriteEvent = favoriteEventsData?.favorites?.find((fav: FavoriteEvent) => 
+    const favoriteEvent = (favoriteEventsData as any)?.favorites?.find((fav: FavoriteEvent) => 
       fav.title === event.title && fav.venue === event.venue && fav.startDate === event.startDate
     );
     
@@ -445,7 +446,7 @@ export default function CulturalDiscovery() {
     setFocusedLocation(location);
     
     // Determine if this location is from favorites or current results
-    const isFromFavorites = favoritesData?.favorites?.some((fav: any) => fav.locationId === location.id);
+    const isFromFavorites = (favoritesData as any)?.favorites?.some((fav: any) => fav.locationId === location.id);
     if (isFromFavorites) {
       setMapMode('favorites');
     } else {
@@ -470,6 +471,30 @@ export default function CulturalDiscovery() {
       setMapMode('favorites');
       setFocusedLocation(null);
     }
+  };
+
+  // Convert events with addresses to event locations for map display
+  const convertEventsToMapData = (events: CulturalEvent[]): any[] => {
+    return events.filter(event => event.address && event.address !== 'Not found').map((event, index) => ({
+      id: `event-${index}`,
+      name: event.title,
+      description: event.description,
+      latitude: '0', // Events don't have coordinates yet - would need geocoding
+      longitude: '0', 
+      address: event.address,
+      category: 'event',
+      venue: event.venue,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      price: event.price,
+      website: event.website,
+      organizer: event.organizer,
+      isEvent: true // Flag to identify this as an event
+    }));
+  };
+
+  const handleEventClick = (event: CulturalEvent) => {
+    setSelectedEvent(event);
   };
 
   const pageContent = (
@@ -704,9 +729,9 @@ export default function CulturalDiscovery() {
                 </>
               ) : (
                 // Favorites view - show favorited locations
-                favoritesData?.favorites?.length > 0 ? (
+                (favoritesData as any)?.favorites?.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {favoritesData.favorites.map((favorite: any) => {
+                    {(favoritesData as any).favorites.map((favorite: any) => {
                       // Find the location data from discoveryResults using the locationId
                       const location = discoveryResults.find((loc: DiscoveryLocation) => loc.id === favorite.locationId);
                       
@@ -967,9 +992,9 @@ export default function CulturalDiscovery() {
 
               {eventsView === 'favorites' && (
                 // Favorites view - show favorited events
-                favoriteEventsData?.favorites?.length > 0 ? (
+                (favoriteEventsData as any)?.favorites?.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2">
-                    {favoriteEventsData.favorites.map((favoriteEvent: any, index: number) => (
+                    {(favoriteEventsData as any).favorites.map((favoriteEvent: any, index: number) => (
                       <Card key={index} className="h-fit">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
@@ -1099,27 +1124,87 @@ export default function CulturalDiscovery() {
               </div>
             </CardHeader>
             <CardContent>
-              {discoveryResults.length > 0 && currentSearchCenter ? (
+              {(discoveryResults.length > 0 && currentSearchCenter) || (mapDataType === 'events' && eventsResults.length > 0) ? (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Toggle between viewing locations and events on the map
+                    {mapDataType === 'events' 
+                      ? `Showing ${eventsResults.filter(e => e.address && e.address !== 'Not found').length} events with addresses`
+                      : 'Toggle between viewing locations and events on the map'
+                    }
                   </p>
 
                   {/* Google Map */}
                   <GoogleMap
-                    locations={mapMode === 'current' ? discoveryResults : (favoritesData?.favorites?.map((fav: FavoriteLocation) => {
-                      return locationsData?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
-                    }).filter(Boolean) || [])}
+                    locations={mapDataType === 'events' ? convertEventsToMapData(eventsResults) : 
+                      (mapMode === 'current' ? discoveryResults : ((favoritesData as any)?.favorites?.map((fav: FavoriteLocation) => {
+                        return (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
+                      }).filter(Boolean) || []))}
                     center={mapCenter || currentSearchCenter || userLocation || { latitude: 53.683, longitude: -1.496 }}
                     onLocationClick={handleLocationClick}
                     focusedLocation={focusedLocation}
                   />
                   
-                  {/* Location list for map legend */}
+                  {/* Location/Event list for map legend */}
                   <div>
-                    <h4 className="text-sm font-medium mb-3">Locations on Map</h4>
+                    <h4 className="text-sm font-medium mb-3">
+                      {mapDataType === 'events' ? 'Events on Map' : 'Locations on Map'}
+                    </h4>
                     <div className="grid gap-2 max-h-64 overflow-y-auto">
-                      {discoveryResults.map((location, index) => (
+                      {mapDataType === 'events' ? (
+                        // Show events list
+                        eventsResults.filter(event => event.address && event.address !== 'Not found').map((event, index) => (
+                          <div 
+                            key={index}
+                            className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                            onClick={() => handleEventClick(event)}
+                          >
+                            <div 
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white bg-red-500"
+                            >
+                              <Calendar className="w-3 h-3" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{event.title}</p>
+                              <p className="text-xs text-muted-foreground truncate">{event.venue}</p>
+                              <p className="text-xs text-muted-foreground truncate">{event.address}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              {event.category}
+                            </Badge>
+                            <div className="flex gap-1">
+                              {event.website && event.website !== 'Not found' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(event.website, '_blank');
+                                  }}
+                                  className="text-muted-foreground hover:text-blue-500"
+                                  title="Visit website"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleEventFavorite(event);
+                                }}
+                                className={`${isEventFavorited(event) ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'}`}
+                                title="Add to favorites"
+                              >
+                                <Heart className={`w-4 h-4 ${isEventFavorited(event) ? 'fill-current' : ''}`} />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        // Show locations list  
+                        discoveryResults.map((location, index) => (
                         <div 
                           key={location.id}
                           className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
@@ -1175,14 +1260,24 @@ export default function CulturalDiscovery() {
                             </Button>
                           </div>
                         </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="text-center p-8 text-muted-foreground">
-                  <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Search for a location to see it on the map with discovered cultural points of interest.</p>
+                  {mapDataType === 'events' ? (
+                    <>
+                      <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Search for events in the Events tab first, then switch to Events view here to see them on the map.</p>
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Search for a location to see it on the map with discovered cultural points of interest.</p>
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>
