@@ -480,34 +480,30 @@ export default function CulturalDiscovery() {
     }
   };
 
-  // Convert events with addresses to event locations for map display
+  // Convert events with accurate coordinates to event locations for map display
+  // Only include events that have been properly geocoded with real coordinates
   const convertEventsToMapData = (events: CulturalEvent[]): any[] => {
-    return events.filter(event => event.address && event.address !== 'Not found').map((event, index) => {
-      // Use search center coordinates with small random offsets to approximate event locations
-      const baseLat = currentSearchCenter?.latitude || 53.683;
-      const baseLng = currentSearchCenter?.longitude || -1.496;
-      
-      // Add small random offsets (±0.01 degrees ≈ ±1km) to spread events around the search center
-      const latOffset = (Math.random() - 0.5) * 0.02;
-      const lngOffset = (Math.random() - 0.5) * 0.02;
-      
-      return {
-        id: `event-${index}`,
-        name: event.title,
-        description: event.description,
-        latitude: (baseLat + latOffset).toString(),
-        longitude: (baseLng + lngOffset).toString(),
-        address: event.address,
-        category: 'event',
-        venue: event.venue,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        price: event.price,
-        website: event.website,
-        organizer: event.organizer,
-        isEvent: true // Flag to identify this as an event
-      };
-    });
+    return events.filter(event => {
+      // Only include events that have accurate coordinate data
+      // Since we don't have geocoding implemented yet, we'll exclude all events from map view
+      // to avoid showing misleading approximate locations
+      return false;
+    }).map((event, index) => ({
+      id: `event-${index}`,
+      name: event.title,
+      description: event.description,
+      latitude: event.latitude || '0',
+      longitude: event.longitude || '0',
+      address: event.address,
+      category: 'event',
+      venue: event.venue,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      price: event.price,
+      website: event.website,
+      organizer: event.organizer,
+      isEvent: true // Flag to identify this as an event
+    }));
   };
 
   const handleEventClick = (event: CulturalEvent) => {
