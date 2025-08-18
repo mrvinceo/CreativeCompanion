@@ -2,16 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 
 interface DiscoveryLocation {
-  id: number;
+  id: number | string;
   name: string;
   description: string;
   latitude: string;
   longitude: string;
   address: string;
   category: string;
-  culturalSignificance: string;
-  aiGenerated: boolean;
-  createdAt: string;
+  culturalSignificance?: string;
+  aiGenerated?: boolean;
+  createdAt?: string;
+  venue?: string;
+  startDate?: string;
+  endDate?: string;
+  price?: string;
+  website?: string;
+  organizer?: string;
+  isEvent?: boolean;
 }
 
 interface GoogleMapProps {
@@ -30,6 +37,7 @@ const categoryColors = {
   library: '#3B82F6',
   creative_district: '#F97316',
   community_space: '#84CC16',
+  event: '#DC2626', // Red for events
   default: '#6B7280'
 };
 
@@ -96,7 +104,12 @@ export function GoogleMap({ locations, center, onLocationClick, focusedLocation 
               <div style="max-width: 250px;">
                 <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold;">${location.name}</h3>
                 <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">${location.description}</p>
-                <p style="margin: 0; font-size: 12px; color: #888;"><strong>Address:</strong> ${location.address}</p>
+                ${location.isEvent ? 
+                  `<p style="margin: 0 0 4px 0; font-size: 12px; color: #888;"><strong>Venue:</strong> ${location.venue}</p>
+                   ${location.startDate ? `<p style="margin: 0 0 4px 0; font-size: 12px; color: #888;"><strong>Date:</strong> ${new Date(location.startDate).toLocaleDateString()}</p>` : ''}
+                   <p style="margin: 0; font-size: 12px; color: #888;"><strong>Address:</strong> ${location.address}</p>` :
+                  `<p style="margin: 0; font-size: 12px; color: #888;"><strong>Address:</strong> ${location.address}</p>`
+                }
               </div>
             `
           });

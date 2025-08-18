@@ -18,16 +18,23 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { RefynLogo } from "@/components/refyn-logo";
 
 interface DiscoveryLocation {
-  id: number;
+  id: number | string;
   name: string;
   description: string;
   latitude: string;
   longitude: string;
   address: string;
   category: string;
-  culturalSignificance: string;
-  aiGenerated: boolean;
-  createdAt: string;
+  culturalSignificance?: string;
+  aiGenerated?: boolean;
+  createdAt?: string;
+  venue?: string;
+  startDate?: string;
+  endDate?: string;
+  price?: string;
+  website?: string;
+  organizer?: string;
+  isEvent?: boolean;
 }
 
 interface FavoriteLocation {
@@ -475,26 +482,48 @@ export default function CulturalDiscovery() {
 
   // Convert events with addresses to event locations for map display
   const convertEventsToMapData = (events: CulturalEvent[]): any[] => {
-    return events.filter(event => event.address && event.address !== 'Not found').map((event, index) => ({
-      id: `event-${index}`,
-      name: event.title,
-      description: event.description,
-      latitude: '0', // Events don't have coordinates yet - would need geocoding
-      longitude: '0', 
-      address: event.address,
-      category: 'event',
-      venue: event.venue,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      price: event.price,
-      website: event.website,
-      organizer: event.organizer,
-      isEvent: true // Flag to identify this as an event
-    }));
+    return events.filter(event => event.address && event.address !== 'Not found').map((event, index) => {
+      // Use search center coordinates with small random offsets to approximate event locations
+      const baseLat = currentSearchCenter?.latitude || 53.683;
+      const baseLng = currentSearchCenter?.longitude || -1.496;
+      
+      // Add small random offsets (±0.01 degrees ≈ ±1km) to spread events around the search center
+      const latOffset = (Math.random() - 0.5) * 0.02;
+      const lngOffset = (Math.random() - 0.5) * 0.02;
+      
+      return {
+        id: `event-${index}`,
+        name: event.title,
+        description: event.description,
+        latitude: (baseLat + latOffset).toString(),
+        longitude: (baseLng + lngOffset).toString(),
+        address: event.address,
+        category: 'event',
+        venue: event.venue,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        price: event.price,
+        website: event.website,
+        organizer: event.organizer,
+        isEvent: true // Flag to identify this as an event
+      };
+    });
   };
 
   const handleEventClick = (event: CulturalEvent) => {
     setSelectedEvent(event);
+  };
+
+  // Center map on event venue (we'll use a simple geocoding approach or general location)
+  const centerMapOnEvent = (event: CulturalEvent) => {
+    // Since we don't have coordinates for events, we'll just select the event
+    // In a real implementation, we'd geocode the venue address
+    setSelectedEvent(event);
+    setActiveTab('map-view'); // Switch to map view
+    toast({
+      title: "Event Selected",
+      description: `Selected ${event.title} - note that event locations need geocoding to show precise map markers.`,
+    });
   };
 
   const pageContent = (
@@ -732,8 +761,9 @@ export default function CulturalDiscovery() {
                 (favoritesData as any)?.favorites?.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {(favoritesData as any).favorites.map((favorite: any) => {
-                      // Find the location data from discoveryResults using the locationId
-                      const location = discoveryResults.find((loc: DiscoveryLocation) => loc.id === favorite.locationId);
+                      // Find the location data from stored locations or current results
+                      const location = (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === favorite.locationId) || 
+                                     discoveryResults.find((loc: DiscoveryLocation) => loc.id === favorite.locationId);
                       
                       // Skip if location data not found
                       if (!location) return null;
@@ -1156,7 +1186,7 @@ export default function CulturalDiscovery() {
                           <div 
                             key={index}
                             className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                            onClick={() => handleEventClick(event)}
+                            onClick={() => centerMapOnEvent(event)}
                           >
                             <div 
                               className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white bg-red-500"
@@ -1336,6 +1366,96 @@ export default function CulturalDiscovery() {
                     {isFavorite(selectedLocation.id) ? 'Favorited' : 'Add to Favorites'}
                   </Button>
                   <Button variant="outline" onClick={() => setSelectedLocation(null)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Event Detail Modal */}
+      <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
+        <DialogContent className="max-w-2xl">
+          {selectedEvent && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  {selectedEvent.title}
+                </DialogTitle>
+                <DialogDescription>
+                  <div className="flex gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <Music className="w-3 h-3 mr-1" />
+                      {selectedEvent.category}
+                    </Badge>
+                    {selectedEvent.price && (
+                      <Badge variant="outline" className="text-xs">
+                        {selectedEvent.price}
+                      </Badge>
+                    )}
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground">{selectedEvent.description}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Date</h4>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(selectedEvent.startDate).toLocaleDateString()}
+                      {selectedEvent.endDate && selectedEvent.endDate !== selectedEvent.startDate && (
+                        <span> - {new Date(selectedEvent.endDate).toLocaleDateString()}</span>
+                      )}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Venue</h4>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {selectedEvent.venue}
+                    </p>
+                    {selectedEvent.address && (
+                      <p className="text-xs text-muted-foreground mt-1">{selectedEvent.address}</p>
+                    )}
+                  </div>
+                </div>
+                
+                {selectedEvent.organizer && (
+                  <div>
+                    <h4 className="font-medium mb-2">Organizer</h4>
+                    <p className="text-sm text-muted-foreground">{selectedEvent.organizer}</p>
+                  </div>
+                )}
+                
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant={isEventFavorited(selectedEvent) ? "default" : "outline"}
+                    onClick={() => toggleEventFavorite(selectedEvent)}
+                    className="flex-1"
+                  >
+                    <Heart className={`w-4 h-4 mr-2 ${isEventFavorited(selectedEvent) ? 'fill-current' : ''}`} />
+                    {isEventFavorited(selectedEvent) ? 'Favorited' : 'Add to Favorites'}
+                  </Button>
+                  {selectedEvent.website && selectedEvent.website !== 'Not found' && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => window.open(selectedEvent.website, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Visit Website
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={() => setSelectedEvent(null)}>
                     Close
                   </Button>
                 </div>
