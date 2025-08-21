@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { MapPin, Heart, Search, Loader2, Star, Camera, Music, Palette, BookOpen, ArrowLeft, Calendar, Clock, ExternalLink, MapPin as LocationIcon, Map, CalendarDays } from "lucide-react";
+import { MapPin, Heart, Search, Loader2, Star, Camera, Music, Palette, BookOpen, ArrowLeft, Calendar, Clock, ExternalLink, MapPin as LocationIcon, Map, CalendarDays, Info } from "lucide-react";
 import { useLocation } from "wouter";
 import { GoogleMap } from "@/components/google-map";
 import { MobileLayout } from "@/components/mobile-layout";
@@ -1275,9 +1275,9 @@ export default function CulturalDiscovery() {
                           key={location.id}
                           className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                           onClick={() => {
-                            handleLocationClick(location);
-                            // Re-center map on this location when clicked
+                            // Just center the map on this location when clicked
                             setMapCenter({ latitude: parseFloat(location.latitude), longitude: parseFloat(location.longitude) });
+                            setFocusedLocation(location);
                           }}
                         >
                           <div 
@@ -1310,12 +1310,12 @@ export default function CulturalDiscovery() {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                centerMapOnLocation(location);
+                                handleLocationClick(location);
                               }}
                               className="text-muted-foreground hover:text-blue-500"
-                              title="Center map on this location"
+                              title="View location information"
                             >
-                              <MapPin className="w-4 h-4" />
+                              <Info className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="ghost"
