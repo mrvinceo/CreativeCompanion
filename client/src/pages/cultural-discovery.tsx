@@ -496,6 +496,50 @@ export default function CulturalDiscovery() {
     toggleFavorite(id);
   };
 
+  // Check if an item in map view is favorited (works for both locations and events)
+  const isMapItemFavorited = (item: DiscoveryLocation) => {
+    if (item.isEvent) {
+      // This is an event, check event favorites
+      return isEventFavorited({
+        title: item.name,
+        description: item.description,
+        startDate: item.startDate || '',
+        venue: item.venue || '',
+        address: item.address,
+        category: item.category,
+        endDate: item.endDate,
+        price: item.price,
+        website: item.website,
+        organizer: item.organizer
+      });
+    } else {
+      // This is a location, check location favorites
+      return isFavorite(typeof item.id === 'string' ? parseInt(item.id) : item.id);
+    }
+  };
+
+  // Toggle favorite for map items (works for both locations and events)
+  const toggleMapItemFavorite = (item: DiscoveryLocation) => {
+    if (item.isEvent) {
+      // This is an event, toggle event favorite
+      toggleEventFavorite({
+        title: item.name,
+        description: item.description,
+        startDate: item.startDate || '',
+        venue: item.venue || '',
+        address: item.address,
+        category: item.category,
+        endDate: item.endDate,
+        price: item.price,
+        website: item.website,
+        organizer: item.organizer
+      });
+    } else {
+      // This is a location, toggle location favorite
+      safeToggleFavorite(item);
+    }
+  };
+
   const isEventFavorited = (event: CulturalEvent) => {
     return (favoriteEventsData as any)?.favorites?.some((fav: FavoriteEvent) => 
       fav.title === event.title && fav.venue === event.venue && fav.startDate === event.startDate
@@ -1414,11 +1458,11 @@ export default function CulturalDiscovery() {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                safeToggleFavorite(location);
+                                toggleMapItemFavorite(location);
                               }}
                               className="text-muted-foreground hover:text-red-500"
                             >
-                              <Heart className={`w-4 h-4 ${isFavorite(typeof location.id === 'string' ? parseInt(location.id) : location.id) ? 'fill-current text-red-500' : ''}`} />
+                              <Heart className={`w-4 h-4 ${isMapItemFavorited(location) ? 'fill-current text-red-500' : ''}`} />
                             </Button>
                           </div>
                         </div>
