@@ -68,6 +68,8 @@ interface CulturalEvent {
   organizer?: string;
   latitude?: string;
   longitude?: string;
+  geocoded?: boolean;
+  formattedAddress?: string;
 }
 
 interface FavoriteEvent {
@@ -115,7 +117,7 @@ export default function CulturalDiscovery() {
   const [eventsView, setEventsView] = useState<'all' | 'favorites'>('all');
   const [mapDataType, setMapDataType] = useState<'locations' | 'events'>('locations');
   const [mapView, setMapView] = useState<'current' | 'favorites'>('current');
-  const [eventsResults, setEventsResults] = useState<CulturalEvent[]>([]);
+  const [discoveredEvents, setDiscoveredEvents] = useState<CulturalEvent[]>([]);
   const [eventsLocation, setEventsLocation] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<CulturalEvent | null>(null);
 
@@ -263,7 +265,7 @@ export default function CulturalDiscovery() {
       return data;
     },
     onSuccess: (data, variables) => {
-      setEventsResults(data.events || []);
+      setDiscoveredEvents(data.events || []);
       setEventsLocation(variables.location);
       
       toast({
@@ -551,17 +553,15 @@ export default function CulturalDiscovery() {
   // Only include events that have been properly geocoded with real coordinates
   const convertEventsToMapData = (events: CulturalEvent[]): any[] => {
     return events.filter(event => {
-      // Only include events that have accurate coordinate data
-      // Since we don't have geocoding implemented yet, we'll exclude all events from map view
-      // to avoid showing misleading approximate locations
-      return false;
+      // Only include events that have been successfully geocoded with accurate coordinates
+      return event.latitude && event.longitude && event.geocoded;
     }).map((event, index) => ({
       id: `event-${index}`,
       name: event.title,
       description: event.description,
-      latitude: event.latitude || '0',
-      longitude: event.longitude || '0',
-      address: event.address,
+      latitude: event.latitude,
+      longitude: event.longitude,
+      address: event.formattedAddress || event.address,
       category: 'event',
       venue: event.venue,
       startDate: event.startDate,
@@ -569,7 +569,8 @@ export default function CulturalDiscovery() {
       price: event.price,
       website: event.website,
       organizer: event.organizer,
-      isEvent: true // Flag to identify this as an event
+      isEvent: true, // Flag to identify this as an event
+      geocoded: event.geocoded
     }));
   };
 
@@ -577,16 +578,41 @@ export default function CulturalDiscovery() {
     setSelectedEvent(event);
   };
 
-  // Center map on event venue (we'll use a simple geocoding approach or general location)
+  // Center map on event venue if it has coordinates
   const centerMapOnEvent = (event: CulturalEvent) => {
-    // Since we don't have coordinates for events, we'll just select the event
-    // In a real implementation, we'd geocode the venue address
-    setSelectedEvent(event);
-    setActiveTab('map-view'); // Switch to map view
-    toast({
-      title: "Event Selected",
-      description: `Selected ${event.title} - note that event locations need geocoding to show precise map markers.`,
-    });
+    if (event.latitude && event.longitude && event.geocoded) {
+      setMapCenter({
+        latitude: parseFloat(event.latitude),
+        longitude: parseFloat(event.longitude)
+      });
+      setFocusedLocation({
+        id: `event-${event.title}`,
+        name: event.title,
+        description: event.description,
+        latitude: event.latitude,
+        longitude: event.longitude,
+        address: event.formattedAddress || event.address || '',
+        category: 'event',
+        venue: event.venue,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        price: event.price,
+        website: event.website,
+        organizer: event.organizer,
+        isEvent: true
+      } as any);
+      setActiveTab('map-view');
+      toast({
+        title: "Event Located",
+        description: `Centered map on ${event.title} at ${event.venue}`,
+      });
+    } else {
+      setSelectedEvent(event);
+      toast({
+        title: "Event Selected",
+        description: `Selected ${event.title} - location coordinates not available for map display.`,
+      });
+    }
   };
 
   const pageContent = (
@@ -1005,13 +1031,13 @@ export default function CulturalDiscovery() {
               </div>
 
               {/* Events Results */}
-              {eventsResults.length > 0 ? (
+              {discoveredEvents.length > 0 ? (
                 <div className="space-y-4">
                   <div className="text-sm text-muted-foreground">
-                    Found {eventsResults.length} events in {eventsLocation}
+                    Found {discoveredEvents.length} events in {eventsLocation}
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
-                    {eventsResults.map((event, index) => (
+                    {discoveredEvents.map((event, index) => (
                       <Card key={index} className="h-fit">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
@@ -1234,18 +1260,22 @@ export default function CulturalDiscovery() {
               </div>
             </CardHeader>
             <CardContent>
-              {(discoveryResults.length > 0 || eventsResults.length > 0) || mapView === 'favorites' ? (
+              {(discoveryResults.length > 0 || discoveredEvents.length > 0) || mapView === 'favorites' ? (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     {mapView === 'favorites' 
-                      ? 'Showing your favorite locations and events on the map'
-                      : `Showing ${discoveryResults.length} locations (color-coded) - events excluded until geocoding is implemented`
+                      ? 'Showing your favorite locations on the map'
+                      : (() => {
+                          const geocodedEvents = convertEventsToMapData(discoveredEvents);
+                          return `Showing ${discoveryResults.length} locations (color-coded) and ${geocodedEvents.length} geocoded events (red markers)`;
+                        })()
                     }
                   </p>
 
                   {/* Google Map */}
                   <GoogleMap
-                    locations={mapView === 'current' ? discoveryResults : 
+                    locations={mapView === 'current' ? 
+                      [...discoveryResults, ...convertEventsToMapData(discoveredEvents)] : 
                       ((favoritesData as any)?.favorites?.map((fav: FavoriteLocation) => {
                         return (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
                       }).filter(Boolean) || [])}
@@ -1266,7 +1296,8 @@ export default function CulturalDiscovery() {
                       {mapView === 'favorites' ? 'Favorite Locations on Map' : 'Current Locations on Map'}
                     </h4>
                     <div className="grid gap-2 max-h-64 overflow-y-auto">
-                      {(mapView === 'current' ? discoveryResults : 
+                      {(mapView === 'current' ? 
+                        [...discoveryResults, ...convertEventsToMapData(discoveredEvents)] : 
                         ((favoritesData as any)?.favorites?.map((fav: FavoriteLocation) => {
                           return (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
                         }).filter(Boolean) || [])

@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { insertFileSchema, insertConversationSchema, insertMessageSchema, insertNoteSchema, insertFavoriteEventSchema } from "@shared/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { discoverCulturalEvents } from "./gemini";
+import { geocodeAddress, geocodeVenue } from "./geocoding";
 import Stripe from "stripe";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1828,7 +1829,69 @@ Focus on authentic, real locations that exist. If exact coordinates aren't avail
       // Use Gemini to discover cultural events
       const events = await discoverCulturalEvents(location, userInterests, dateRange);
 
-      res.json({ events, location, userInterests });
+      // Add geocoding to events that have venue/address information
+      const eventsWithCoordinates = await Promise.allSettled(
+        events.map(async (event) => {
+          try {
+            // First try to geocode using the full address if available
+            let coordinates = null;
+            if (event.address && event.address.trim()) {
+              coordinates = await geocodeAddress(event.address);
+            }
+            
+            // If address geocoding failed, try with venue name and location
+            if (!coordinates && event.venue && event.venue.trim()) {
+              coordinates = await geocodeVenue(event.venue, location);
+            }
+
+            // Add coordinates to the event if found
+            if (coordinates) {
+              return {
+                ...event,
+                latitude: coordinates.latitude.toString(),
+                longitude: coordinates.longitude.toString(),
+                geocoded: true,
+                formattedAddress: coordinates.formattedAddress || event.address
+              };
+            } else {
+              // Return event without coordinates if geocoding failed
+              return {
+                ...event,
+                latitude: null,
+                longitude: null,
+                geocoded: false
+              };
+            }
+          } catch (error) {
+            console.warn(`Failed to geocode event: ${event.title}`, error);
+            return {
+              ...event,
+              latitude: null,
+              longitude: null,
+              geocoded: false
+            };
+          }
+        })
+      );
+
+      // Extract successful results and log geocoding statistics
+      const processedEvents = eventsWithCoordinates
+        .filter(result => result.status === 'fulfilled')
+        .map(result => (result as PromiseFulfilledResult<any>).value);
+      
+      const geocodedCount = processedEvents.filter(event => event.geocoded).length;
+      console.log(`Geocoded ${geocodedCount} out of ${processedEvents.length} events`);
+
+      res.json({ 
+        events: processedEvents, 
+        location, 
+        userInterests,
+        geocodingStats: {
+          total: processedEvents.length,
+          geocoded: geocodedCount,
+          failed: processedEvents.length - geocodedCount
+        }
+      });
     } catch (error) {
       console.error("Event discovery error:", error);
       res.status(500).json({ 
