@@ -574,6 +574,39 @@ export default function CulturalDiscovery() {
     }));
   };
 
+  // Convert favorited events to map data for favorites view
+  const convertFavoriteEventsToMapData = (favoriteEvents: FavoriteEvent[]): any[] => {
+    return favoriteEvents.filter(event => {
+      // Check if we have the original event data with coordinates
+      const originalEvent = discoveredEvents.find(e => 
+        e.title === event.title && e.venue === event.venue && e.startDate === event.startDate
+      );
+      return originalEvent && originalEvent.latitude && originalEvent.longitude && originalEvent.geocoded;
+    }).map((event, index) => {
+      const originalEvent = discoveredEvents.find(e => 
+        e.title === event.title && e.venue === event.venue && e.startDate === event.startDate
+      );
+      return {
+        id: `fav-event-${index}`,
+        name: event.title,
+        description: event.description,
+        latitude: originalEvent!.latitude,
+        longitude: originalEvent!.longitude,
+        address: originalEvent!.formattedAddress || event.address,
+        category: 'event',
+        venue: event.venue,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        price: event.price,
+        website: event.website,
+        organizer: event.organizer,
+        isEvent: true,
+        isFavorite: true,
+        notes: event.notes
+      };
+    });
+  };
+
   const handleEventClick = (event: CulturalEvent) => {
     setSelectedEvent(event);
   };
@@ -1264,7 +1297,11 @@ export default function CulturalDiscovery() {
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     {mapView === 'favorites' 
-                      ? 'Showing your favorite locations on the map'
+                      ? (() => {
+                          const favLocations = (favoritesData as any)?.favorites?.length || 0;
+                          const favEvents = convertFavoriteEventsToMapData((favoriteEventsData as any)?.favorites || []).length;
+                          return `Showing ${favLocations} favorite locations and ${favEvents} favorite events on the map`;
+                        })()
                       : (() => {
                           const geocodedEvents = convertEventsToMapData(discoveredEvents);
                           return `Showing ${discoveryResults.length} locations (color-coded) and ${geocodedEvents.length} geocoded events (red markers)`;
@@ -1276,14 +1313,35 @@ export default function CulturalDiscovery() {
                   <GoogleMap
                     locations={mapView === 'current' ? 
                       [...discoveryResults, ...convertEventsToMapData(discoveredEvents)] : 
-                      ((favoritesData as any)?.favorites?.map((fav: FavoriteLocation) => {
-                        return (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
-                      }).filter(Boolean) || [])}
-                    center={mapView === 'favorites' && (favoritesData as any)?.favorites?.length > 0 ? 
+                      [
+                        ...((favoritesData as any)?.favorites?.map((fav: FavoriteLocation) => {
+                          return (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
+                        }).filter(Boolean) || []),
+                        ...convertFavoriteEventsToMapData((favoriteEventsData as any)?.favorites || [])
+                      ]}
+                    center={mapView === 'favorites' && ((favoritesData as any)?.favorites?.length > 0 || (favoriteEventsData as any)?.favorites?.length > 0) ? 
                       (() => {
-                        const firstFav = ((favoritesData as any)?.favorites?.[0]);
-                        const firstLocation = firstFav ? (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === firstFav.locationId) : null;
-                        return firstLocation ? { latitude: parseFloat(firstLocation.latitude), longitude: parseFloat(firstLocation.longitude) } : null;
+                        // Try to get first favorite location
+                        const firstFavLocation = ((favoritesData as any)?.favorites?.[0]);
+                        if (firstFavLocation) {
+                          const firstLocation = (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === firstFavLocation.locationId);
+                          if (firstLocation) {
+                            return { latitude: parseFloat(firstLocation.latitude), longitude: parseFloat(firstLocation.longitude) };
+                          }
+                        }
+                        
+                        // Try to get first favorite event with coordinates
+                        const firstFavEvent = ((favoriteEventsData as any)?.favorites?.[0]);
+                        if (firstFavEvent) {
+                          const originalEvent = discoveredEvents.find(e => 
+                            e.title === firstFavEvent.title && e.venue === firstFavEvent.venue && e.startDate === firstFavEvent.startDate
+                          );
+                          if (originalEvent && originalEvent.latitude && originalEvent.longitude) {
+                            return { latitude: parseFloat(originalEvent.latitude), longitude: parseFloat(originalEvent.longitude) };
+                          }
+                        }
+                        
+                        return null;
                       })() || { latitude: 53.683, longitude: -1.496 } :
                       mapCenter || currentSearchCenter || userLocation || { latitude: 53.683, longitude: -1.496 }}
                     onLocationClick={handleLocationClick}
@@ -1293,14 +1351,17 @@ export default function CulturalDiscovery() {
                   {/* Location list for map legend */}
                   <div>
                     <h4 className="text-sm font-medium mb-3">
-                      {mapView === 'favorites' ? 'Favorite Locations on Map' : 'Current Locations on Map'}
+                      {mapView === 'favorites' ? 'Favorite Locations & Events on Map' : 'Current Locations & Events on Map'}
                     </h4>
                     <div className="grid gap-2 max-h-64 overflow-y-auto">
                       {(mapView === 'current' ? 
                         [...discoveryResults, ...convertEventsToMapData(discoveredEvents)] : 
-                        ((favoritesData as any)?.favorites?.map((fav: FavoriteLocation) => {
-                          return (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
-                        }).filter(Boolean) || [])
+                        [
+                          ...((favoritesData as any)?.favorites?.map((fav: FavoriteLocation) => {
+                            return (locationsData as any)?.locations?.find((loc: DiscoveryLocation) => loc.id === fav.locationId);
+                          }).filter(Boolean) || []),
+                          ...convertFavoriteEventsToMapData((favoriteEventsData as any)?.favorites || [])
+                        ]
                       ).map((location: DiscoveryLocation, index: number) => (
                         <div 
                           key={location.id}
